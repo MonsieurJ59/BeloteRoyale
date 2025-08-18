@@ -1,0 +1,1 @@
+// Contexte global pour partager l'état (React Context)
