@@ -7,8 +7,8 @@ const router = Router();
 // GET all teams
 router.get("/", async (_req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM teams ORDER BY id ASC");
-    res.json(result.rows);
+    const [rows] = await pool.query("SELECT * FROM teams ORDER BY id ASC");
+    res.json(rows);
   } catch (error) {
     console.error("Error fetching teams:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -22,34 +22,41 @@ router.post("/", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Name is required" });
 
     // Start a transaction
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     try {
-      await client.query('BEGIN');
+      await connection.beginTransaction();
       
       // Create team
-      const teamResult = await client.query(
-        "INSERT INTO teams (name) VALUES ($1) RETURNING *",
+      const [result] = await connection.query(
+        "INSERT INTO teams (name) VALUES (?)",
         [name]
       );
-      const team = teamResult.rows[0];
+      const teamId = (result as any).insertId;
+      
+      // Get the created team
+      const [teams] = await connection.query(
+        "SELECT * FROM teams WHERE id = ?",
+        [teamId]
+      );
+      const team = (teams as any[])[0];
       
       // Create players if provided
       if (players && players.length > 0) {
         for (const playerName of players) {
-          await client.query(
-            "INSERT INTO players (name, team_id) VALUES ($1, $2)",
-            [playerName, team.id]
+          await connection.query(
+            "INSERT INTO players (name, team_id) VALUES (?, ?)",
+            [playerName, teamId]
           );
         }
       }
       
-      await client.query('COMMIT');
+      await connection.commit();
       res.status(201).json(team);
     } catch (error) {
-      await client.query('ROLLBACK');
+      await connection.rollback();
       throw error;
     } finally {
-      client.release();
+      connection.release();
     }
   } catch (error) {
     console.error("Error creating team:", error);
@@ -70,22 +77,22 @@ router.patch("/:id", async (req, res) => {
     
     if (name !== undefined) {
       values.push(name);
-      updateFields.push(`name=$${values.length}`);
+      updateFields.push(`name = ?`);
     }
     
     if (prelim_points !== undefined) {
       values.push(prelim_points);
-      updateFields.push(`prelim_points=$${values.length}`);
+      updateFields.push(`prelim_points = ?`);
     }
     
     if (wins !== undefined) {
       values.push(wins);
-      updateFields.push(`wins=$${values.length}`);
+      updateFields.push(`wins = ?`);
     }
     
     if (losses !== undefined) {
       values.push(losses);
-      updateFields.push(`losses=$${values.length}`);
+      updateFields.push(`losses = ?`);
     }
     
     if (updateFields.length === 0) {
@@ -94,15 +101,17 @@ router.patch("/:id", async (req, res) => {
     
     query += updateFields.join(", ");
     values.push(id);
-    query += ` WHERE id=$${values.length} RETURNING *`;
+    query += ` WHERE id = ?`;
 
-    const result = await pool.query(query, values);
+    const [result] = await pool.query(query, values);
     
-    if (result.rows.length === 0) {
+    if ((result as any).affectedRows === 0) {
       return res.status(404).json({ error: "Team not found" });
     }
     
-    res.json(result.rows[0]);
+    // Get the updated team
+    const [teams] = await pool.query("SELECT * FROM teams WHERE id = ?", [id]);
+    res.json((teams as any[])[0]);
   } catch (error) {
     console.error("Error updating team:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -113,29 +122,29 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const client = await pool.connect();
+    const connection = await pool.getConnection();
     
     try {
-      await client.query('BEGIN');
+      await connection.beginTransaction();
       
       // Delete associated players first
-      await client.query("DELETE FROM players WHERE team_id=$1", [id]);
+      await connection.query("DELETE FROM players WHERE team_id = ?", [id]);
       
       // Delete team
-      const result = await client.query("DELETE FROM teams WHERE id=$1 RETURNING *", [id]);
+      const [result] = await connection.query("DELETE FROM teams WHERE id = ?", [id]);
       
-      if (result.rows.length === 0) {
-        await client.query('ROLLBACK');
+      if ((result as any).affectedRows === 0) {
+        await connection.rollback();
         return res.status(404).json({ error: "Team not found" });
       }
       
-      await client.query('COMMIT');
+      await connection.commit();
       res.status(204).send();
     } catch (error) {
-      await client.query('ROLLBACK');
+      await connection.rollback();
       throw error;
     } finally {
-      client.release();
+      connection.release();
     }
   } catch (error) {
     console.error("Error deleting team:", error);
@@ -147,13 +156,13 @@ router.delete("/:id", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM teams WHERE id=$1", [id]);
+    const [rows] = await pool.query("SELECT * FROM teams WHERE id = ?", [id]);
     
-    if (result.rows.length === 0) {
+    if ((rows as any[]).length === 0) {
       return res.status(404).json({ error: "Team not found" });
     }
     
-    res.json(result.rows[0]);
+    res.json((rows as any[])[0]);
   } catch (error) {
     console.error("Error fetching team:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -166,14 +175,14 @@ router.get("/:id/players", async (req, res) => {
     const { id } = req.params;
     
     // First check if team exists
-    const teamResult = await pool.query("SELECT * FROM teams WHERE id=$1", [id]);
+    const [teams] = await pool.query("SELECT * FROM teams WHERE id = ?", [id]);
     
-    if (teamResult.rows.length === 0) {
+    if ((teams as any[]).length === 0) {
       return res.status(404).json({ error: "Team not found" });
     }
     
-    const playersResult = await pool.query("SELECT * FROM players WHERE team_id=$1", [id]);
-    res.json(playersResult.rows);
+    const [players] = await pool.query("SELECT * FROM players WHERE team_id = ?", [id]);
+    res.json(players);
   } catch (error) {
     console.error("Error fetching team players:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -183,10 +192,10 @@ router.get("/:id/players", async (req, res) => {
 // GET team rankings
 router.get("/rankings/all", async (_req, res) => {
   try {
-    const result = await pool.query(
+    const [rows] = await pool.query(
       "SELECT * FROM teams ORDER BY wins DESC, prelim_points DESC"
     );
-    res.json(result.rows);
+    res.json(rows);
   } catch (error) {
     console.error("Error fetching team rankings:", error);
     res.status(500).json({ error: "Internal server error" });
