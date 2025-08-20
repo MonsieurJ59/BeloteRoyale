@@ -42,5 +42,9 @@ shell-%:
 db-shell:
 	docker-compose exec db psql -U postgres -d belote
 
-run-fixtures: 
+fixtures: 
 	docker-compose exec backend npm run seed
+
+reset-docker:
+	docker-compose down -v
+	docker-compose up -d --build
