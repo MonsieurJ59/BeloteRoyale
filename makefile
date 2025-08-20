@@ -41,3 +41,6 @@ shell-%:
 # Accéder à la base de données PostgreSQL
 db-shell:
 	docker-compose exec db psql -U postgres -d belote
+
+run-fixtures: 
+	docker-compose exec backend npm run seed
