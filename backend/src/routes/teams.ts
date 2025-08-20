@@ -43,50 +43,32 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, player1, player2, prelim_points, wins, losses } = req.body as UpdateTeamDto;
-
-    // Build dynamic query based on provided fields
+    const { name, player1, player2 } = req.body as UpdateTeamDto;
+    
     let query = "UPDATE teams SET ";
     const values: any[] = [];
     const updateFields: string[] = [];
-
+    
     if (name !== undefined) {
       values.push(name);
-      updateFields.push("name = ?");
+      updateFields.push(`name = ?`);
     }
-
     if (player1 !== undefined) {
       values.push(player1);
-      updateFields.push("player1 = ?");
+      updateFields.push(`player1 = ?`);
     }
-
     if (player2 !== undefined) {
       values.push(player2);
-      updateFields.push("player2 = ?");
+      updateFields.push(`player2 = ?`);
     }
-
-    if (prelim_points !== undefined) {
-      values.push(prelim_points);
-      updateFields.push("prelim_points = ?");
-    }
-
-    if (wins !== undefined) {
-      values.push(wins);
-      updateFields.push("wins = ?");
-    }
-
-    if (losses !== undefined) {
-      values.push(losses);
-      updateFields.push("losses = ?");
-    }
-
+    
     if (updateFields.length === 0) {
       return res.status(400).json({ error: "No fields to update" });
     }
-
+    
     query += updateFields.join(", ");
     values.push(id);
-    query += " WHERE id = ?";
+    query += ` WHERE id = ?`;
 
     const [result] = await pool.query(query, values);
 
@@ -137,15 +119,48 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// GET team rankings
-router.get("/rankings/all", async (_req, res) => {
+// GET team rankings for all tournaments (aggregated stats)
+router.get("/rankings", async (_req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM teams ORDER BY wins DESC, prelim_points DESC"
+      "SELECT t.id, t.name, t.player1, t.player2, " +
+      "SUM(ts.wins) as total_wins, " +
+      "SUM(ts.losses) as total_losses, " +
+      "SUM(ts.prelim_points) as total_prelim_points " +
+      "FROM teams t " +
+      "LEFT JOIN team_tournament_stats ts ON t.id = ts.team_id " +
+      "GROUP BY t.id " +
+      "ORDER BY total_wins DESC, total_prelim_points DESC"
     );
     res.json(rows);
   } catch (error) {
     console.error("Error fetching team rankings:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET team rankings for a specific tournament
+router.get("/rankings/tournament/:tournamentId", async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id FROM tournaments WHERE id = ?", [tournamentId]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    
+    const [rows] = await pool.query(
+      "SELECT t.id, t.name, t.player1, t.player2, ts.prelim_points, ts.wins, ts.losses " +
+      "FROM teams t " +
+      "JOIN team_tournament_stats ts ON t.id = ts.team_id " +
+      "WHERE ts.tournament_id = ? " +
+      "ORDER BY ts.wins DESC, ts.prelim_points DESC",
+      [tournamentId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching tournament team rankings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

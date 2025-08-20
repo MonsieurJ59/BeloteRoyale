@@ -7,7 +7,13 @@ const router = Router();
 // GET all matches
 router.get("/", async (_req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM matches ORDER BY id ASC");
+    const [rows] = await pool.query(
+      "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name, t.name as tournament_name " +
+      "FROM matches m " +
+      "JOIN teams ta ON m.team_a_id = ta.id " +
+      "JOIN teams tb ON m.team_b_id = tb.id " +
+      "JOIN tournaments t ON m.tournament_id = t.id"
+    );
     res.json(rows);
   } catch (error) {
     console.error("Error fetching matches:", error);
@@ -35,11 +41,18 @@ router.get("/:id", async (req, res) => {
 // POST create match
 router.post("/", async (req, res) => {
   try {
-    const { is_prelim, team_a_id, team_b_id, score_a = 0, score_b = 0, winner_id = null } = req.body as CreateMatchDto;
+    const { tournament_id, is_prelim, team_a_id, team_b_id, score_a = 0, score_b = 0, winner_id = null } = req.body as CreateMatchDto;
     
+    if (!tournament_id) return res.status(400).json({ error: "Tournament ID is required" });
     if (is_prelim === undefined) return res.status(400).json({ error: "is_prelim is required" });
     if (!team_a_id) return res.status(400).json({ error: "Team A ID is required" });
     if (!team_b_id) return res.status(400).json({ error: "Team B ID is required" });
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id FROM tournaments WHERE id = ?", [tournament_id]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(400).json({ error: "Tournament does not exist" });
+    }
     
     // Validate teams exist
     const [teams] = await pool.query("SELECT id FROM teams WHERE id IN (?, ?)", [team_a_id, team_b_id]);
@@ -49,8 +62,8 @@ router.post("/", async (req, res) => {
     
     // Create match
     const [result] = await pool.query(
-      "INSERT INTO matches (is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
-      [is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id]
+      "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id]
     );
     
     const matchId = (result as any).insertId;
@@ -122,16 +135,45 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// GET matches by type (prelim or main)
+// GET matches by type (prelim or main) and tournament
+router.get("/tournament/:tournamentId/type/:prelim", async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    const isPrelim = req.params.prelim === "prelim";
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id FROM tournaments WHERE id = ?", [tournamentId]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    
+    const [rows] = await pool.query(
+      "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name, t.name as tournament_name " +
+      "FROM matches m " +
+      "JOIN teams ta ON m.team_a_id = ta.id " +
+      "JOIN teams tb ON m.team_b_id = tb.id " +
+      "JOIN tournaments t ON m.tournament_id = t.id " +
+      "WHERE m.tournament_id = ? AND m.is_prelim = ? ORDER BY m.id ASC",
+      [tournamentId, isPrelim]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching matches:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET matches by type (prelim or main) for all tournaments
 router.get("/type/:prelim", async (req, res) => {
   try {
     const isPrelim = req.params.prelim === "prelim";
     const [rows] = await pool.query(
-      "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name " +
+      "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name, t.name as tournament_name " +
       "FROM matches m " +
       "JOIN teams ta ON m.team_a_id = ta.id " +
       "JOIN teams tb ON m.team_b_id = tb.id " +
-      "WHERE m.is_prelim = ? ORDER BY m.id ASC",
+      "JOIN tournaments t ON m.tournament_id = t.id " +
+      "WHERE m.is_prelim = ? ORDER BY m.tournament_id, m.id ASC",
       [isPrelim]
     );
     res.json(rows);
@@ -141,9 +183,17 @@ router.get("/type/:prelim", async (req, res) => {
   }
 });
 
-// Generate preliminary matches
-router.post("/generate/prelim", async (_req, res) => {
+// Generate preliminary matches for a tournament
+router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
   try {
+    const { tournamentId } = req.params;
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id FROM tournaments WHERE id = ?", [tournamentId]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -151,19 +201,47 @@ router.post("/generate/prelim", async (_req, res) => {
       if ((teams as any[]).length < 2) {
         return res.status(400).json({ error: "Need at least 2 teams" });
       }
-      await connection.query("DELETE FROM matches WHERE is_prelim = TRUE");
-      await connection.query("UPDATE teams SET prelim_points = 0");
+      
+      // Delete existing preliminary matches for this tournament
+      await connection.query("DELETE FROM matches WHERE tournament_id = ? AND is_prelim = TRUE", [tournamentId]);
+      
+      // Reset preliminary points for all teams in this tournament
+      await connection.query(
+        "UPDATE team_tournament_stats SET prelim_points = 0 WHERE tournament_id = ?", 
+        [tournamentId]
+      );
+      
+      // Create team_tournament_stats entries for teams that don't have them yet
+      for (const team of (teams as any[])) {
+        const [existingStats] = await connection.query(
+          "SELECT id FROM team_tournament_stats WHERE team_id = ? AND tournament_id = ?",
+          [team.id, tournamentId]
+        );
+        
+        if ((existingStats as any[]).length === 0) {
+          await connection.query(
+            "INSERT INTO team_tournament_stats (team_id, tournament_id, prelim_points, wins, losses) VALUES (?, ?, 0, 0, 0)",
+            [team.id, tournamentId]
+          );
+        }
+      }
+      
       const matches = [];
       for (let i = 0; i < (teams as any[]).length; i++) {
         for (let j = i + 1; j < (teams as any[]).length; j++) {
           matches.push({ team_a_id: (teams as any[])[i].id, team_b_id: (teams as any[])[j].id });
         }
       }
+      
       for (const match of matches) {
-        await connection.query("INSERT INTO matches (is_prelim, team_a_id, team_b_id) VALUES (TRUE, ?, ?)", [match.team_a_id, match.team_b_id]);
+        await connection.query(
+          "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id) VALUES (?, TRUE, ?, ?)", 
+          [tournamentId, match.team_a_id, match.team_b_id]
+        );
       }
+      
       await connection.commit();
-      res.status(201).json({ message: `Generated ${matches.length} preliminary matches` });
+      res.status(201).json({ message: `Generated ${matches.length} preliminary matches for tournament ${tournamentId}` });
     } catch (err) {
       await connection.rollback();
       throw err;
@@ -176,27 +254,90 @@ router.post("/generate/prelim", async (_req, res) => {
   }
 });
 
-// Generate main matches
-router.post("/generate/main", async (_req, res) => {
+// Generate main matches for a tournament
+router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
   try {
+    const { tournamentId } = req.params;
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id FROM tournaments WHERE id = ?", [tournamentId]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-      const [teams] = await connection.query("SELECT id FROM teams");
-      if ((teams as any[]).length < 2) {
+      
+      // Get teams with their stats for this tournament, ordered by prelim points
+      const [teamsWithStats] = await connection.query(
+        "SELECT t.id, ts.prelim_points FROM teams t " +
+        "JOIN team_tournament_stats ts ON t.id = ts.team_id " +
+        "WHERE ts.tournament_id = ? " +
+        "ORDER BY ts.prelim_points DESC",
+        [tournamentId]
+      );
+      
+      if ((teamsWithStats as any[]).length < 2) {
         return res.status(400).json({ error: "Need at least 2 teams" });
       }
-      await connection.query("DELETE FROM matches WHERE is_prelim = FALSE");
-      const shuffled = [...(teams as any[])].sort(() => Math.random() - 0.5);
+      
+      // Delete existing main matches for this tournament
+      await connection.query("DELETE FROM matches WHERE tournament_id = ? AND is_prelim = FALSE", [tournamentId]);
+      
+      // Shuffle teams with similar prelim points to add some randomness while respecting rankings
+      const groupedTeams: any[][] = [];
+      let currentGroup: any[] = [];
+      let currentPoints: number | null = null;
+      
+      for (const team of (teamsWithStats as any[])) {
+        // Vérifier que team.prelim_points existe et n'est pas undefined
+        const teamPoints = team.prelim_points !== undefined ? team.prelim_points : 0;
+        
+        if (currentPoints === null || teamPoints === currentPoints) {
+          currentGroup.push(team);
+          currentPoints = teamPoints;
+        } else {
+          if (currentGroup.length > 0) {
+            groupedTeams.push([...currentGroup]);
+          }
+          currentGroup = [team];
+          currentPoints = teamPoints;
+        }
+      }
+      
+      if (currentGroup.length > 0) {
+        groupedTeams.push(currentGroup);
+      }
+      
+      // Shuffle each group of teams with the same points
+      for (let i = 0; i < groupedTeams.length; i++) {
+        groupedTeams[i] = groupedTeams[i].sort(() => Math.random() - 0.5);
+      }
+      
+      // Flatten the groups back into a single array
+      const sortedTeams = groupedTeams.flat();
+      
       const newMatches = [];
-      for (let i = 0; i < shuffled.length - 1; i += 2) {
-        newMatches.push({ team_a_id: shuffled[i].id, team_b_id: shuffled[i + 1].id });
+      for (let i = 0; i < sortedTeams.length - 1; i += 2) {
+        newMatches.push({ team_a_id: sortedTeams[i].id, team_b_id: sortedTeams[i + 1].id });
       }
+      
       for (const match of newMatches) {
-        await connection.query("INSERT INTO matches (is_prelim, team_a_id, team_b_id) VALUES (FALSE, ?, ?)", [match.team_a_id, match.team_b_id]);
+        await connection.query(
+          "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id) VALUES (?, FALSE, ?, ?)", 
+          [tournamentId, match.team_a_id, match.team_b_id]
+        );
       }
+      
+      // Update tournament status to in_progress if it was upcoming
+      await connection.query(
+        "UPDATE tournaments SET status = 'in_progress' WHERE id = ? AND status = 'upcoming'",
+        [tournamentId]
+      );
+      
       await connection.commit();
-      res.status(201).json({ message: `Generated ${newMatches.length} main matches` });
+      res.status(201).json({ message: `Generated ${newMatches.length} main matches for tournament ${tournamentId}` });
     } catch (err) {
       await connection.rollback();
       throw err;

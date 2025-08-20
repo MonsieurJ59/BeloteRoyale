@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import teamsRouter from "./routes/teams";
 import matchesRouter from "./routes/matches";
+import tournamentsRouter from "./routes/tournaments";
+import teamTournamentStatsRouter from "./routes/teamTournamentStats";
 
 const app = express();
 app.use(cors());
@@ -13,6 +15,8 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 // Routes
 app.use("/teams", teamsRouter);
 app.use("/matches", matchesRouter);
+app.use("/tournaments", tournamentsRouter);
+app.use("/team-tournament-stats", teamTournamentStatsRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
