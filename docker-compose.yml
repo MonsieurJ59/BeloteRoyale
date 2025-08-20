@@ -1,34 +1,70 @@
 services:
-  db:
-    image: postgres:15
+  # Commenté pour utiliser MySQL à la place
+  # db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: belote
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - db-data:/var/lib/postgresql/data
+  #     - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  mysql:
+    image: mysql:8
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: belote
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: belote
+      MYSQL_USER: belote
+      MYSQL_PASSWORD: belote
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql-data:/var/lib/mysql
+      - ./db/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    # Utiliser l'émulation pour exécuter l'image amd64 sur arm64
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8082:80"
+    depends_on:
+      - mysql
 
   backend:
-    build: ./backend 
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     environment:
+      NODE_ENV: development
       PORT: 4000
-      DB_HOST: db
-      DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root
       DB_NAME: belote
-      DB_PORT: 5432
+      DB_PORT: 3306
     ports:
       - "4000:4000"
     depends_on:
-      - db
+      - mysql
     volumes:
       - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    command: >-
+      sh -c "npm install && npm run dev"
 
   frontend:
-    build: ./front
+    build: 
+      context: ./front
+      dockerfile: Dockerfile
     ports:
       - "5173:5173"
     environment:
@@ -37,20 +73,23 @@ services:
       - backend
     volumes:
       - ./front:/app
-      - /app/node_modules   # <= IMPORTANT pour ne pas écraser les deps du conteneur
+      - /app/node_modules
+    restart: unless-stopped
 
-  pgadmin:
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@belote.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "8080:80"
-    depends_on:
-      - db
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
+  # Commenté pour utiliser phpMyAdmin à la place
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@belote.com
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "8080:80"
+  #   depends_on:
+  #     - db
+  #   volumes:
+  #     - pgadmin-data:/var/lib/pgadmin
 
 volumes:
-  db-data:
-  pgadmin-data:
+  # db-data:
+  # pgadmin-data:
+  mysql-data:
