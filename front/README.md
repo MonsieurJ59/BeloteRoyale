@@ -1,69 +1,78 @@
-# React + TypeScript + Vite
+# Belote Royale - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface utilisateur pour l'application Belote Royale, permettant de gérer des tournois de belote.
 
-Currently, two official plugins are available:
+## Technologies utilisées
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 18
+- TypeScript
+- Vite
+- React Router
+- Styled Components
 
-## Expanding the ESLint configuration
+## Fonctionnalités
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Gestion des tournois (création, visualisation, mise à jour)
+- Gestion des équipes
+- Suivi des matchs et des scores
+- Classements des équipes
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Installation
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+1. Clonez le dépôt
+2. Installez les dépendances :
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3. Copiez le fichier `.env.example` en `.env` et configurez les variables d'environnement :
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+cp .env.example .env
+```
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Développement
+
+Pour lancer le serveur de développement :
+
+```bash
+npm run dev
+```
+
+L'application sera disponible à l'adresse [http://localhost:5173](http://localhost:5173).
+
+## Structure du projet
+
+```
+src/
+├── components/     # Composants réutilisables
+├── context/        # Contextes React pour la gestion d'état
+├── pages/          # Pages de l'application
+├── types/          # Définitions de types TypeScript
+├── utils/          # Fonctions utilitaires
+├── App.tsx         # Composant principal
+└── main.tsx        # Point d'entrée
+```
+
+## Communication avec le backend
+
+L'application communique avec le backend via une API REST. L'URL de base de l'API est configurée dans le fichier `.env` avec la variable `VITE_API_URL`.
+
+## Build de production
+
+Pour créer une version de production :
+
+```bash
+npm run build
+```
+
+Les fichiers générés seront disponibles dans le dossier `dist/`.
+
+## Docker
+
+L'application peut être exécutée via Docker en utilisant le fichier `docker-compose.yml` à la racine du projet.
+
+```bash
+docker-compose up
 ```
