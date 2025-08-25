@@ -1,25 +1,36 @@
 /* Styles globaux de l'application */
+
+/* Élément racine qui contient toute l'application */
 #root {
-  width: 100%;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
+  width: 100%;                /* Utilise toute la largeur disponible */
+  margin: 0;                  /* Supprime les marges externes */
+  padding: 0;                 /* Supprime les marges internes */
+  overflow-x: hidden;         /* Cache le défilement horizontal */
+  display: flex;              /* Utilise le modèle de disposition flexible */
+  flex-direction: column;     /* Empile les éléments verticalement */
+  min-height: 100vh;          /* Hauteur minimale égale à la hauteur de la fenêtre */
 }
 
-/* Animation pour les transitions */
+/* Contenu principal de l'application */
+main {
+  flex: 1;                    /* Prend tout l'espace disponible entre la navbar et le footer */
+  padding-top: 20px;          /* Espace au-dessus du contenu */
+  padding-bottom: 40px;       /* Espace en dessous du contenu */
+}
+
+/* Animation pour les transitions entre les pages */
 @keyframes fadeIn {
   from {
-    opacity: 0;
-    transform: translateY(20px);
+    opacity: 0;               /* Commence invisible */
+    transform: translateY(20px); /* Commence 20px plus bas */
   }
   to {
-    opacity: 1;
-    transform: translateY(0);
+    opacity: 1;               /* Termine complètement visible */
+    transform: translateY(0);  /* Termine à sa position normale */
   }
 }
 
-/* Appliquer l'animation aux éléments principaux */
+/* Classe pour appliquer l'animation aux éléments principaux */
 .animated {
-  animation: fadeIn 0.6s ease-out forwards;
+  animation: fadeIn 0.6s ease-out forwards; /* Animation de 0.6 secondes avec ralentissement à la fin */
 }
