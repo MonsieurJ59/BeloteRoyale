@@ -13,9 +13,8 @@ import MatchesPage from './pages/MatchesPage' // Page listant tous les matchs
 import { TournamentProvider } from './context/TournamentContext' // Gestion des données des tournois
 import { TeamProvider } from './context/TeamContextProvider' // Gestion des données des équipes
 import { MatchProvider } from './context/MatchContext' // Gestion des données des matchs
-// Importation des composants de navigation et de pied de page
-import Navbar from './components/Navbar' // Barre de navigation
-import Footer from './components/Footer' // Pied de page
+// Importation du nouveau layout avec sidebar
+import Layout from './components/Layout' // Layout principal avec sidebar
 
 function App() {
   return (
@@ -24,9 +23,8 @@ function App() {
       <TeamProvider>
         <MatchProvider>
           <Router>
-            {/* Structure de l'application */}
-            <Navbar /> {/* Barre de navigation affichée en haut de toutes les pages */}
-            <main> {/* Contenu principal de l'application */}
+            {/* Structure de l'application avec le nouveau layout */}
+            <Layout>
               <Routes>
                 {/* Définition des routes de l'application */}
                 {/* Chaque Route associe un chemin URL à un composant React */}
@@ -38,8 +36,7 @@ function App() {
                 <Route path="/matches" element={<MatchesPage />} /> {/* Liste des matchs */}
                 <Route path="*" element={<Navigate to="/" replace />} /> {/* Redirection pour les routes non trouvées */}
               </Routes>
-            </main>
-            <Footer /> {/* Pied de page affiché en bas de toutes les pages */}
+            </Layout>
           </Router>
         </MatchProvider>
       </TeamProvider>

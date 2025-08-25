@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'; // Composant de navigation
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
 import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import { theme } from '../styles/theme'; // Thème avec couleurs modernes
 
 // Composant principal de la page des tournois
 const TournamentsPage: React.FC = () => {
@@ -119,165 +120,238 @@ const TournamentsPage: React.FC = () => {
 // Styles avec styled-components
 // Conteneur principal de la page
 const PageContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
 `;
 
 // Style du titre principal
 const Title = styled.h1`
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
-  color: #333;
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize['4xl']};
+  font-weight: ${theme.typography.fontWeight.bold};
+  margin-bottom: ${theme.spacing.xxl};
+  color: ${theme.colors.text.primary};
   text-align: center;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -${theme.spacing.sm};
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, ${theme.colors.accent.main}, ${theme.colors.accent.light});
+    border-radius: ${theme.borderRadius.sm};
+  }
 `;
 
 // Style du conteneur des onglets
 const TabsContainer = styled.div`
   display: flex;
   justify-content: center;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid #ddd;
+  margin-bottom: ${theme.spacing.xxl};
+  background: ${theme.colors.background.card};
+  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing.sm};
+  box-shadow: ${theme.shadows.sm};
+  border: 1px solid ${theme.colors.border.light};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    flex-wrap: wrap;
+    gap: ${theme.spacing.xs};
+  }
 `;
 
 // Style des onglets avec props pour l'état actif
 const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.8rem 1.5rem;
-  background-color: transparent;
+  padding: ${theme.spacing.md} ${theme.spacing.lg};
+  background-color: ${props => props.$active ? theme.colors.primary.main : 'transparent'};
   border: none;
-  border-bottom: 3px solid ${props => props.$active ? '#007bff' : 'transparent'};
-  color: ${props => props.$active ? '#007bff' : '#555'};
-  font-weight: ${props => props.$active ? '600' : '400'};
-  font-size: 1rem;
+  border-radius: ${theme.borderRadius.md};
+  color: ${props => props.$active ? theme.colors.text.light : theme.colors.text.secondary};
+  font-weight: ${props => props.$active ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium};
+  font-size: ${theme.typography.fontSize.base};
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all ${theme.transitions.normal};
+  position: relative;
   
   &:hover {
-    color: #007bff;
+    background-color: ${props => props.$active ? theme.colors.primary.light : theme.colors.primary.main + '10'};
+    color: ${props => props.$active ? theme.colors.text.light : theme.colors.primary.main};
+    transform: translateY(-1px);
   }
   
   &:focus {
-    outline: none;
+    outline: 2px solid ${theme.colors.accent.main};
+    outline-offset: 2px;
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    flex: 1;
+    min-width: 80px;
+    font-size: ${theme.typography.fontSize.sm};
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
   }
 `;
 
 // Style de la grille de tournois (responsive)
 const TournamentsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: ${theme.spacing.xl};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 // Style des cartes de tournoi
 const TournamentCard = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: ${theme.colors.background.card};
+  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing.xl};
+  box-shadow: ${theme.shadows.sm};
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all ${theme.transitions.normal};
+  border: 1px solid ${theme.colors.border.light};
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, ${theme.colors.primary.main}, ${theme.colors.accent.main});
+  }
   
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+    box-shadow: ${theme.shadows.lg};
+    border-color: ${theme.colors.accent.main};
   }
 `;
 
 // Style du badge de statut avec couleurs conditionnelles
 const TournamentStatus = styled.div<{ $status: Tournament['status'] }>`
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  top: ${theme.spacing.lg};
+  right: ${theme.spacing.lg};
+  padding: ${theme.spacing.xs} ${theme.spacing.md};
+  border-radius: ${theme.borderRadius.full};
+  font-size: ${theme.typography.fontSize.xs};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   background-color: ${props => {
-    // Couleur de fond selon le statut
     switch (props.$status) {
       case 'upcoming':
-        return '#e3f2fd'; // Bleu clair
+        return theme.colors.status.info + '20';
       case 'in_progress':
-        return '#e8f5e9'; // Vert clair
+        return theme.colors.status.success + '20';
       case 'completed':
-        return '#f5f5f5'; // Gris clair
+        return theme.colors.neutral.gray300;
       default:
-        return '#f5f5f5';
+        return theme.colors.neutral.gray300;
     }
   }};
   color: ${props => {
-    // Couleur du texte selon le statut
     switch (props.$status) {
       case 'upcoming':
-        return '#0d47a1'; // Bleu foncé
+        return theme.colors.status.info;
       case 'in_progress':
-        return '#1b5e20'; // Vert foncé
+        return theme.colors.status.success;
       case 'completed':
-        return '#616161'; // Gris foncé
+        return theme.colors.neutral.gray600;
       default:
-        return '#616161';
+        return theme.colors.neutral.gray600;
     }
   }};
 `;
 
 // Style du nom du tournoi
 const TournamentName = styled.h3`
-  font-size: 1.4rem;
-  margin-bottom: 0.5rem;
-  color: #333;
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize.xl};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  margin-bottom: ${theme.spacing.sm};
+  color: ${theme.colors.text.primary};
+  line-height: ${theme.typography.lineHeight.tight};
+  margin-top: ${theme.spacing.sm};
 `;
 
 // Style de la date du tournoi
 const TournamentDate = styled.p`
-  font-size: 1rem;
-  color: #666;
-  margin-bottom: 1.5rem;
+  font-size: ${theme.typography.fontSize.base};
+  color: ${theme.colors.text.secondary};
+  margin-bottom: ${theme.spacing.xl};
+  display: flex;
+  align-items: center;
+  
+  &::before {
+    content: '📅';
+    margin-right: ${theme.spacing.sm};
+  }
 `;
 
 // Style du bouton de détails (utilise le composant Link de react-router-dom)
 const ViewDetailsButton = styled(Link)`
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  background-color: #007bff;
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${theme.spacing.sm} ${theme.spacing.lg};
+  background-color: ${theme.colors.primary.main};
+  color: ${theme.colors.text.light};
   text-decoration: none;
-  border-radius: 4px;
-  font-weight: 600;
-  transition: background-color 0.2s;
+  border-radius: ${theme.borderRadius.md};
+  font-weight: ${theme.typography.fontWeight.medium};
+  font-size: ${theme.typography.fontSize.sm};
+  transition: all ${theme.transitions.fast};
+  width: 100%;
   
   &:hover {
-    background-color: #0069d9;
+    background-color: ${theme.colors.primary.light};
+    transform: translateY(-1px);
+    box-shadow: ${theme.shadows.sm};
   }
 `;
 
 // Style du message de chargement
 const LoadingMessage = styled.p`
   text-align: center;
-  font-size: 1.2rem;
-  color: #666;
-  margin: 2rem 0;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.text.secondary};
+  margin: ${theme.spacing.xxl} 0;
+  padding: ${theme.spacing.xl};
+  background-color: ${theme.colors.neutral.gray50};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border.light};
 `;
 
 // Style du message d'erreur
 const ErrorMessage = styled.p`
   text-align: center;
-  font-size: 1.2rem;
-  color: #dc3545;
-  margin: 2rem 0;
-  padding: 1rem;
-  background-color: #f8d7da;
-  border-radius: 4px;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.status.error};
+  margin: ${theme.spacing.xxl} 0;
+  padding: ${theme.spacing.lg};
+  background-color: ${theme.colors.status.error}20;
+  border-radius: ${theme.borderRadius.md};
+  border: 1px solid ${theme.colors.status.error}40;
 `;
 
 // Style du message quand aucun tournoi n'est trouvé
 const EmptyMessage = styled.p`
   text-align: center;
-  font-size: 1.2rem;
-  color: #666;
-  margin: 2rem 0;
-  padding: 2rem;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.text.secondary};
+  margin: ${theme.spacing.xxl} 0;
+  padding: ${theme.spacing.xxl};
+  background-color: ${theme.colors.neutral.gray50};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border.light};
 `;
 
 export default TournamentsPage;

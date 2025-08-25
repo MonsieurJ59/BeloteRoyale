@@ -6,6 +6,7 @@ import { TournamentContext } from '../context/TournamentContext'; // Contexte po
 import { TeamContext } from '../context/TeamContext'; // Contexte pour la gestion des équipes
 import { MatchContext } from '../context/MatchContext'; // Contexte pour la gestion des matchs
 import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import { theme } from '../styles/theme'; // Thème avec couleurs modernes
 
 // Composant principal de la page d'accueil
 const HomePage: React.FC = () => {
@@ -132,9 +133,7 @@ const HomePage: React.FC = () => {
 // Styles avec styled-components
 // Conteneur principal de la page
 const PageContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  width: 100%;
 `;
 
 // Style de la section hero (bannière principale)
@@ -142,14 +141,25 @@ const HeroSection = styled.section`
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 500px;
-  background-color: #f8f9fa;
-  border-radius: 12px;
-  margin: 2rem 0;
-  padding: 2rem;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), url('/hero-bg.jpg');
-  background-size: cover;
-  background-position: center;
+  min-height: 400px;
+  background: linear-gradient(135deg, ${theme.colors.primary.main} 0%, ${theme.colors.primary.light} 100%);
+  border-radius: ${theme.borderRadius.xl};
+  margin-bottom: ${theme.spacing.xxxl};
+  padding: ${theme.spacing.xxxl};
+  box-shadow: ${theme.shadows.lg};
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="2" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="1.5" fill="%23ffffff" opacity="0.03"/><circle cx="50" cy="10" r="1" fill="%23ffffff" opacity="0.04"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+    opacity: 0.3;
+  }
 `;
 
 // Style du contenu de la section hero
@@ -160,249 +170,342 @@ const HeroContent = styled.div`
 
 // Style du titre principal de la section hero
 const HeroTitle = styled.h1`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  color: #333;
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize['5xl']};
+  font-weight: ${theme.typography.fontWeight.bold};
+  margin-bottom: ${theme.spacing.lg};
+  color: ${theme.colors.text.light};
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.typography.fontSize['3xl']};
+  }
 `;
 
 // Style du sous-titre de la section hero
 const HeroSubtitle = styled.p`
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  color: #666;
+  font-size: ${theme.typography.fontSize.xl};
+  margin-bottom: ${theme.spacing.xxl};
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.typography.fontSize.lg};
+  }
 `;
 
 // Style du conteneur des boutons de la section hero
 const HeroButtons = styled.div`
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  gap: ${theme.spacing.lg};
+  position: relative;
+  z-index: 1;
   
-  /* Adaptation pour les écrans mobiles */
-  @media (max-width: 768px) {
+  @media (max-width: ${theme.breakpoints.md}) {
     flex-direction: column;
     align-items: center;
+    gap: ${theme.spacing.md};
   }
 `;
 
 // Style de base pour les boutons (utilise le composant Link de react-router-dom)
 const Button = styled(Link)`
-  display: inline-block;
-  padding: 0.8rem 1.5rem;
-  border-radius: 4px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${theme.spacing.md} ${theme.spacing.xl};
+  border-radius: ${theme.borderRadius.md};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  font-size: ${theme.typography.fontSize.base};
   text-decoration: none;
-  transition: all 0.2s;
-`;
-
-// Style du bouton principal (bleu)
-const PrimaryButton = styled(Button)`
-  background-color: #007bff;
-  color: white;
+  transition: all ${theme.transitions.normal};
+  min-width: 160px;
+  box-shadow: ${theme.shadows.sm};
   
   &:hover {
-    background-color: #0069d9;
+    transform: translateY(-2px);
+    box-shadow: ${theme.shadows.md};
   }
 `;
 
-// Style du bouton secondaire (contour bleu)
-const SecondaryButton = styled(Button)`
-  background-color: transparent;
-  color: #007bff;
-  border: 2px solid #007bff;
+// Style du bouton principal
+const PrimaryButton = styled(Button)`
+  background-color: ${theme.colors.accent.main};
+  color: ${theme.colors.text.light};
   
   &:hover {
-    background-color: rgba(0, 123, 255, 0.1);
+    background-color: ${theme.colors.accent.dark};
+  }
+`;
+
+// Style du bouton secondaire
+const SecondaryButton = styled(Button)`
+  background-color: rgba(255, 255, 255, 0.1);
+  color: ${theme.colors.text.light};
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
   }
 `;
 
 // Style des sections de contenu
 const SectionContainer = styled.section`
-  margin: 3rem 0;
+  margin: ${theme.spacing.xxxl} 0;
 `;
 
 // Style des titres de section
 const SectionTitle = styled.h2`
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  color: #333;
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize['3xl']};
+  font-weight: ${theme.typography.fontWeight.bold};
+  margin-bottom: ${theme.spacing.xl};
+  color: ${theme.colors.text.primary};
   text-align: center;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -${theme.spacing.sm};
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(90deg, ${theme.colors.accent.main}, ${theme.colors.accent.light});
+    border-radius: ${theme.borderRadius.sm};
+  }
 `;
 
 // Style de la grille de tournois (responsive)
 const TournamentsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: ${theme.spacing.xl};
   position: relative;
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 // Style des cartes de tournoi
 const TournamentCard = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: ${theme.colors.background.card};
+  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing.xl};
+  box-shadow: ${theme.shadows.sm};
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all ${theme.transitions.normal};
+  border: 1px solid ${theme.colors.border.light};
   
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+    box-shadow: ${theme.shadows.lg};
+    border-color: ${theme.colors.accent.main};
   }
 `;
 
 // Style du badge de statut avec couleurs conditionnelles
 const TournamentStatus = styled.div<{ $status: Tournament['status'] }>`
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  top: ${theme.spacing.lg};
+  right: ${theme.spacing.lg};
+  padding: ${theme.spacing.xs} ${theme.spacing.md};
+  border-radius: ${theme.borderRadius.full};
+  font-size: ${theme.typography.fontSize.xs};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   background-color: ${props => {
-    // Couleur de fond selon le statut
     switch (props.$status) {
       case 'upcoming':
-        return '#e3f2fd'; // Bleu clair
+        return theme.colors.status.info + '20';
       case 'in_progress':
-        return '#e8f5e9'; // Vert clair
+        return theme.colors.status.success + '20';
       case 'completed':
-        return '#f5f5f5'; // Gris clair
+        return theme.colors.neutral.gray300;
       default:
-        return '#f5f5f5';
+        return theme.colors.neutral.gray300;
     }
   }};
   color: ${props => {
-    // Couleur du texte selon le statut
     switch (props.$status) {
       case 'upcoming':
-        return '#0d47a1'; // Bleu foncé
+        return theme.colors.status.info;
       case 'in_progress':
-        return '#1b5e20'; // Vert foncé
+        return theme.colors.status.success;
       case 'completed':
-        return '#616161'; // Gris foncé
+        return theme.colors.neutral.gray600;
       default:
-        return '#616161';
+        return theme.colors.neutral.gray600;
     }
   }};
 `;
 
 // Style du nom du tournoi
 const TournamentName = styled.h3`
-  font-size: 1.4rem;
-  margin-bottom: 0.5rem;
-  color: #333;
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize.xl};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  margin-bottom: ${theme.spacing.sm};
+  color: ${theme.colors.text.primary};
+  line-height: ${theme.typography.lineHeight.tight};
 `;
 
 // Style de la date du tournoi
 const TournamentDate = styled.p`
-  font-size: 1rem;
-  color: #666;
-  margin-bottom: 1.5rem;
+  font-size: ${theme.typography.fontSize.base};
+  color: ${theme.colors.text.secondary};
+  margin-bottom: ${theme.spacing.xl};
+  display: flex;
+  align-items: center;
+  
+  &::before {
+    content: '📅';
+    margin-right: ${theme.spacing.sm};
+  }
 `;
 
 // Style du bouton de détails (utilise le composant Link de react-router-dom)
 const ViewDetailsButton = styled(Link)`
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  background-color: #007bff;
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${theme.spacing.sm} ${theme.spacing.lg};
+  background-color: ${theme.colors.primary.main};
+  color: ${theme.colors.text.light};
   text-decoration: none;
-  border-radius: 4px;
-  font-weight: 600;
-  transition: background-color 0.2s;
+  border-radius: ${theme.borderRadius.md};
+  font-weight: ${theme.typography.fontWeight.medium};
+  font-size: ${theme.typography.fontSize.sm};
+  transition: all ${theme.transitions.fast};
   
   &:hover {
-    background-color: #0069d9;
+    background-color: ${theme.colors.primary.light};
+    transform: translateY(-1px);
   }
 `;
 
 // Style du bouton "Voir tous les tournois" (s'étend sur toute la largeur)
 const ViewAllButton = styled(Link)`
-  grid-column: 1 / -1; // Prend toute la largeur de la grille
+  grid-column: 1 / -1;
   text-align: center;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  color: #007bff;
+  padding: ${theme.spacing.lg};
+  background: linear-gradient(135deg, ${theme.colors.accent.lighter}, ${theme.colors.accent.light});
+  color: ${theme.colors.accent.dark};
   text-decoration: none;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: background-color 0.2s;
+  border-radius: ${theme.borderRadius.lg};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  font-size: ${theme.typography.fontSize.lg};
+  transition: all ${theme.transitions.normal};
+  border: 2px solid transparent;
   
   &:hover {
-    background-color: #e9ecef;
+    background: ${theme.colors.accent.main};
+    color: ${theme.colors.text.light};
+    transform: translateY(-2px);
+    box-shadow: ${theme.shadows.md};
   }
 `;
 
 // Style de la section des statistiques
 const StatsSection = styled.section`
-  margin: 3rem 0;
-  padding: 2rem;
-  background-color: #f8f9fa;
-  border-radius: 12px;
+  margin: ${theme.spacing.xxxl} 0;
+  padding: ${theme.spacing.xxl};
+  background: linear-gradient(135deg, ${theme.colors.background.secondary}, ${theme.colors.neutral.gray50});
+  border-radius: ${theme.borderRadius.xl};
+  border: 1px solid ${theme.colors.border.light};
+  box-shadow: ${theme.shadows.sm};
 `;
 
 // Style de la grille des statistiques (responsive)
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: ${theme.spacing.xl};
+  margin-top: ${theme.spacing.xl};
 `;
 
 // Style des cartes de statistiques
 const StatCard = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 2rem;
+  background-color: ${theme.colors.background.card};
+  border-radius: ${theme.borderRadius.lg};
+  padding: ${theme.spacing.xxl};
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: ${theme.shadows.sm};
+  border: 1px solid ${theme.colors.border.light};
+  transition: all ${theme.transitions.normal};
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: ${theme.shadows.md};
+    border-color: ${theme.colors.primary.light};
+  }
 `;
 
 // Style du nombre dans les statistiques
 const StatNumber = styled.div`
-  font-size: 3rem;
-  font-weight: 700;
-  color: #007bff;
-  margin-bottom: 0.5rem;
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize['4xl']};
+  font-weight: ${theme.typography.fontWeight.bold};
+  background: linear-gradient(135deg, ${theme.colors.primary.main}, ${theme.colors.primary.light});
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: ${theme.spacing.sm};
 `;
 
 // Style du libellé dans les statistiques
 const StatLabel = styled.div`
-  font-size: 1.2rem;
-  color: #666;
+  font-size: ${theme.typography.fontSize.lg};
+  font-weight: ${theme.typography.fontWeight.medium};
+  color: ${theme.colors.text.secondary};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 // Style du message de chargement
 const LoadingMessage = styled.p`
   text-align: center;
-  font-size: 1.2rem;
-  color: #666;
-  margin: 2rem 0;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.text.secondary};
+  margin: ${theme.spacing.xxl} 0;
+  padding: ${theme.spacing.xl};
+  background-color: ${theme.colors.neutral.gray50};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border.light};
 `;
 
 // Style du message d'erreur
 const ErrorMessage = styled.p`
   text-align: center;
-  font-size: 1.2rem;
-  color: #dc3545;
-  margin: 2rem 0;
-  padding: 1rem;
-  background-color: #f8d7da;
-  border-radius: 4px;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.status.error};
+  margin: ${theme.spacing.xxl} 0;
+  padding: ${theme.spacing.lg};
+  background-color: ${theme.colors.status.error}20;
+  border-radius: ${theme.borderRadius.md};
+  border: 1px solid ${theme.colors.status.error}40;
 `;
 
 // Style du message quand aucun tournoi n'est trouvé
 const EmptyMessage = styled.p`
   text-align: center;
-  font-size: 1.2rem;
-  color: #666;
-  margin: 2rem 0;
-  padding: 2rem;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.text.secondary};
+  margin: ${theme.spacing.xxl} 0;
+  padding: ${theme.spacing.xxl};
+  background-color: ${theme.colors.neutral.gray50};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border.light};
 `;
 
 export default HomePage;
