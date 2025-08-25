@@ -5,7 +5,7 @@ import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
 import { TeamContext } from '../context/TeamContext'; // Contexte pour la gestion des équipes
 import { MatchContext } from '../context/MatchContext'; // Contexte pour la gestion des matchs
-import { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
 
 // Composant principal de la page d'accueil
 const HomePage: React.FC = () => {
@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
             {inProgressTournaments.map(tournament => (
               <TournamentCard key={tournament.id}>
                 {/* Badge de statut */}
-                <TournamentStatus status={tournament.status}>
+                <TournamentStatus $status={tournament.status}>
                   {getStatusLabel(tournament.status)}
                 </TournamentStatus>
                 {/* Nom du tournoi */}
@@ -253,7 +253,7 @@ const TournamentCard = styled.div`
 `;
 
 // Style du badge de statut avec couleurs conditionnelles
-const TournamentStatus = styled.div<{ status: Tournament['status'] }>`
+const TournamentStatus = styled.div<{ $status: Tournament['status'] }>`
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -263,7 +263,7 @@ const TournamentStatus = styled.div<{ status: Tournament['status'] }>`
   font-weight: 600;
   background-color: ${props => {
     // Couleur de fond selon le statut
-    switch (props.status) {
+    switch (props.$status) {
       case 'upcoming':
         return '#e3f2fd'; // Bleu clair
       case 'in_progress':
@@ -276,7 +276,7 @@ const TournamentStatus = styled.div<{ status: Tournament['status'] }>`
   }};
   color: ${props => {
     // Couleur du texte selon le statut
-    switch (props.status) {
+    switch (props.$status) {
       case 'upcoming':
         return '#0d47a1'; // Bleu foncé
       case 'in_progress':

@@ -45,7 +45,7 @@ const Logo = styled(Link)`
 `;
 
 // Style du conteneur des liens de navigation avec animation pour mobile
-const NavLinks = styled.div<{ isOpen: boolean }>`
+const NavLinks = styled.div<{ $isOpen: boolean }>`
   display: flex; // Disposition flexible
   align-items: center; // Centrage vertical
   
@@ -59,7 +59,7 @@ const NavLinks = styled.div<{ isOpen: boolean }>`
     flex-direction: column; // Liens empilés verticalement
     align-items: flex-start; // Alignement à gauche
     padding: 0; // Pas d'espacement interne
-    max-height: ${({ isOpen }) => (isOpen ? '300px' : '0')}; // Animation d'ouverture/fermeture
+    max-height: ${({ $isOpen }) => ($isOpen ? '300px' : '0')}; // Animation d'ouverture/fermeture
     overflow: hidden; // Cache le contenu qui dépasse
     transition: max-height 0.3s ease-in-out; // Animation fluide
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); // Ombre légère
@@ -67,7 +67,7 @@ const NavLinks = styled.div<{ isOpen: boolean }>`
 `;
 
 // Style des liens de navigation avec indicateur d'état actif
-const NavLink = styled(Link)<{ active: boolean }>`
+const NavLink = styled(Link)<{ $active: boolean }>`
   color: white; // Couleur du texte
   text-decoration: none; // Supprime le soulignement du lien
   padding: 10px 15px; // Espacement interne
@@ -82,8 +82,8 @@ const NavLink = styled(Link)<{ active: boolean }>`
   }
   
   // Style spécifique pour le lien actif (page courante) - version desktop
-  ${({ active }) =>
-    active &&
+  ${({ $active }) =>
+    $active &&
     `
     &::after {
       content: ''; // Contenu vide pour l'élément pseudo
@@ -105,8 +105,8 @@ const NavLink = styled(Link)<{ active: boolean }>`
     border-bottom: 1px solid rgba(255, 255, 255, 0.1); // Ligne de séparation
     
     // Style spécifique pour le lien actif (page courante) - version mobile
-    ${({ active }) =>
-      active &&
+    ${({ $active }) =>
+      $active &&
       `
       background-color: rgba(52, 152, 219, 0.2); // Fond bleu clair semi-transparent
       
@@ -175,21 +175,21 @@ const Navbar = () => {
         </MobileMenuButton>
         
         {/* Liste des liens de navigation */}
-        <NavLinks isOpen={isMenuOpen}>
+        <NavLinks $isOpen={isMenuOpen}>
           {/* Lien vers la page d'accueil */}
-          <NavLink to="/" active={isActive('/')} onClick={closeMenu}>
+          <NavLink to="/" $active={isActive('/')} onClick={closeMenu}>
             Accueil
           </NavLink>
           {/* Lien vers la page des tournois */}
-          <NavLink to="/tournaments" active={isActive('/tournaments')} onClick={closeMenu}>
+          <NavLink to="/tournaments" $active={isActive('/tournaments')} onClick={closeMenu}>
             Tournois
           </NavLink>
           {/* Lien vers la page des équipes */}
-          <NavLink to="/teams" active={isActive('/teams')} onClick={closeMenu}>
+          <NavLink to="/teams" $active={isActive('/teams')} onClick={closeMenu}>
             Équipes
           </NavLink>
           {/* Lien vers la page des matchs */}
-          <NavLink to="/matches" active={isActive('/matches')} onClick={closeMenu}>
+          <NavLink to="/matches" $active={isActive('/matches')} onClick={closeMenu}>
             Matchs
           </NavLink>
         </NavLinks>

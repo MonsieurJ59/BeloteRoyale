@@ -3,7 +3,7 @@ import React, { useState, useContext, useMemo } from 'react'; // Hooks React de 
 import { Link } from 'react-router-dom'; // Composant de navigation
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
-import { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
 
 // Composant principal de la page des tournois
 const TournamentsPage: React.FC = () => {
@@ -51,25 +51,25 @@ const TournamentsPage: React.FC = () => {
       {/* Onglets de filtrage pour sélectionner les tournois par statut */}
       <TabsContainer>
         <Tab 
-          active={activeTab === 'all'} 
+          $active={activeTab === 'all'} 
           onClick={() => setActiveTab('all')}
         >
           Tous
         </Tab>
         <Tab 
-          active={activeTab === 'in_progress'} 
+          $active={activeTab === 'in_progress'} 
           onClick={() => setActiveTab('in_progress')}
         >
           En cours
         </Tab>
         <Tab 
-          active={activeTab === 'upcoming'} 
+          $active={activeTab === 'upcoming'} 
           onClick={() => setActiveTab('upcoming')}
         >
           À venir
         </Tab>
         <Tab 
-          active={activeTab === 'completed'} 
+          $active={activeTab === 'completed'} 
           onClick={() => setActiveTab('completed')}
         >
           Terminés
@@ -97,7 +97,7 @@ const TournamentsPage: React.FC = () => {
           {filteredTournaments.map(tournament => (
             <TournamentCard key={tournament.id}>
               {/* Badge de statut */}
-              <TournamentStatus status={tournament.status}>
+              <TournamentStatus $status={tournament.status}>
                 {getStatusLabel(tournament.status)}
               </TournamentStatus>
               {/* Nom du tournoi */}
@@ -141,13 +141,13 @@ const TabsContainer = styled.div`
 `;
 
 // Style des onglets avec props pour l'état actif
-const Tab = styled.button<{ active: boolean }>`
+const Tab = styled.button<{ $active: boolean }>`
   padding: 0.8rem 1.5rem;
   background-color: transparent;
   border: none;
-  border-bottom: 3px solid ${props => props.active ? '#007bff' : 'transparent'};
-  color: ${props => props.active ? '#007bff' : '#555'};
-  font-weight: ${props => props.active ? '600' : '400'};
+  border-bottom: 3px solid ${props => props.$active ? '#007bff' : 'transparent'};
+  color: ${props => props.$active ? '#007bff' : '#555'};
+  font-weight: ${props => props.$active ? '600' : '400'};
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -184,7 +184,7 @@ const TournamentCard = styled.div`
 `;
 
 // Style du badge de statut avec couleurs conditionnelles
-const TournamentStatus = styled.div<{ status: Tournament['status'] }>`
+const TournamentStatus = styled.div<{ $status: Tournament['status'] }>`
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -194,7 +194,7 @@ const TournamentStatus = styled.div<{ status: Tournament['status'] }>`
   font-weight: 600;
   background-color: ${props => {
     // Couleur de fond selon le statut
-    switch (props.status) {
+    switch (props.$status) {
       case 'upcoming':
         return '#e3f2fd'; // Bleu clair
       case 'in_progress':
@@ -207,7 +207,7 @@ const TournamentStatus = styled.div<{ status: Tournament['status'] }>`
   }};
   color: ${props => {
     // Couleur du texte selon le statut
-    switch (props.status) {
+    switch (props.$status) {
       case 'upcoming':
         return '#0d47a1'; // Bleu foncé
       case 'in_progress':

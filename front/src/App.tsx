@@ -11,7 +11,7 @@ import TeamsPage from './pages/TeamsPage' // Page de gestion des équipes
 import MatchesPage from './pages/MatchesPage' // Page listant tous les matchs
 // Importation des fournisseurs de contexte (Context Providers)
 import { TournamentProvider } from './context/TournamentContext' // Gestion des données des tournois
-import { TeamProvider } from './context/TeamContext' // Gestion des données des équipes
+import { TeamProvider } from './context/TeamContextProvider' // Gestion des données des équipes
 import { MatchProvider } from './context/MatchContext' // Gestion des données des matchs
 // Importation des composants de navigation et de pied de page
 import Navbar from './components/Navbar' // Barre de navigation
