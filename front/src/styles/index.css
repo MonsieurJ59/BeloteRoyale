@@ -4,11 +4,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
 /* Import des modules CSS */
-@import './styles/variables.css';
-@import './styles/components.css';
-@import './styles/layout.css';
-@import './styles/sidebar.css';
-@import './styles/pages.css';
+@import './variables.css';
+@import './components.css';
+@import './layout.css';
+@import './sidebar.css';
+@import './pages.css';
 
 /* Reset et styles de base */
 * {
@@ -31,17 +31,6 @@ body {
   background-color: var(--color-bg-secondary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-width: 320px;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-#root {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
 }
 
 /* Styles globaux pour les éléments HTML */
@@ -84,7 +73,6 @@ a {
   color: var(--color-primary-main);
   text-decoration: none;
   transition: color var(--transition-fast);
-  font-weight: 500;
 }
 
 a:hover {
@@ -106,6 +94,25 @@ img {
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+/* Styles pour les tableaux */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-lg);
+}
+
+th, td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+th {
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-neutral-gray50);
+  color: var(--color-text-primary);
 }
 
 /* Styles pour les éléments de formulaire */
@@ -254,4 +261,9 @@ input, textarea, select, button {
 
 .animate-pulse {
   animation: pulse 2s infinite;
+}
+
+/* Mode sombre (optionnel pour le futur) */
+@media (prefers-color-scheme: dark) {
+  /* Les variables peuvent être redéfinies ici pour un thème sombre */
 }
