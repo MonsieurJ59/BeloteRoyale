@@ -7,6 +7,7 @@ import Home from './pages/Home' // Page d'accueil simple avec bouton d'entrée
 import HomePage from './pages/HomePage' // Page d'accueil principale avec statistiques
 import TournamentsPage from './pages/TournamentsPage' // Page listant tous les tournois
 import TournamentDetailPage from './pages/TournamentDetailPage' // Page de détail d'un tournoi spécifique
+import TournamentSummaryPage from './pages/TournamentSummaryPage' // Page de résumé d'un tournoi
 import TeamsPage from './pages/TeamsPage' // Page de gestion des équipes
 import MatchesPage from './pages/MatchesPage' // Page listant tous les matchs
 // Importation des fournisseurs de contexte (Context Providers)
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/" element={<HomePage />} /> {/* Page d'accueil principale */}
                 <Route path="/welcome" element={<Home />} /> {/* Page d'accueil simple */}
                 <Route path="/tournaments" element={<TournamentsPage />} /> {/* Liste des tournois */}
+                <Route path="/tournaments/:id" element={<TournamentSummaryPage />} /> {/* Résumé d'un tournoi (avec paramètre id) */}
                 <Route path="/tournament/:id" element={<TournamentDetailPage />} /> {/* Détail d'un tournoi (avec paramètre id) */}
                 <Route path="/teams" element={<TeamsPage />} /> {/* Gestion des équipes */}
                 <Route path="/matches" element={<MatchesPage />} /> {/* Liste des matchs */}

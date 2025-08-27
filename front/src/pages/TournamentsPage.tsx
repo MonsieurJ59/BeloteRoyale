@@ -105,9 +105,9 @@ const TournamentsPage: React.FC = () => {
               <TournamentName>{tournament.name}</TournamentName>
               {/* Date du tournoi formatée */}
               <TournamentDate>{formatDate(tournament.date)}</TournamentDate>
-              {/* Lien vers la page de détails du tournoi */}
+              {/* Lien vers la page de résumé du tournoi */}
               <ViewDetailsButton to={`/tournaments/${tournament.id}`}>
-                Voir les détails
+                Voir le résumé
               </ViewDetailsButton>
             </TournamentCard>
           ))}
