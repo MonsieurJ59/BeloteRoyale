@@ -41,10 +41,10 @@ router.get("/:id", async (req, res) => {
 // POST create match
 router.post("/", async (req, res) => {
   try {
-    const { tournament_id, is_prelim, team_a_id, team_b_id, score_a = 0, score_b = 0, winner_id = null } = req.body as CreateMatchDto;
+    const { tournament_id, match_type, team_a_id, team_b_id, score_a = 0, score_b = 0, winner_id = null, match_order } = req.body as CreateMatchDto;
     
     if (!tournament_id) return res.status(400).json({ error: "Tournament ID is required" });
-    if (is_prelim === undefined) return res.status(400).json({ error: "is_prelim is required" });
+    if (!match_type) return res.status(400).json({ error: "match_type is required" });
     if (!team_a_id) return res.status(400).json({ error: "Team A ID is required" });
     if (!team_b_id) return res.status(400).json({ error: "Team B ID is required" });
     
@@ -62,8 +62,8 @@ router.post("/", async (req, res) => {
     
     // Create match
     const [result] = await pool.query(
-      "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id]
+      "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id, score_a, score_b, winner_id, match_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [tournament_id, match_type, team_a_id, team_b_id, score_a, score_b, winner_id, match_order]
     );
     
     const matchId = (result as any).insertId;
@@ -135,11 +135,10 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// GET matches by type (prelim or main) and tournament
-router.get("/tournament/:tournamentId/type/:prelim", async (req, res) => {
+// GET matches by tournament and type
+router.get("/tournament/:tournamentId/type/:matchType", async (req, res) => {
   try {
-    const { tournamentId } = req.params;
-    const isPrelim = req.params.prelim === "prelim";
+    const { tournamentId, matchType } = req.params;
     
     // Validate tournament exists
     const [tournaments] = await pool.query("SELECT id FROM tournaments WHERE id = ?", [tournamentId]);
@@ -153,8 +152,8 @@ router.get("/tournament/:tournamentId/type/:prelim", async (req, res) => {
       "JOIN teams ta ON m.team_a_id = ta.id " +
       "JOIN teams tb ON m.team_b_id = tb.id " +
       "JOIN tournaments t ON m.tournament_id = t.id " +
-      "WHERE m.tournament_id = ? AND m.is_prelim = ? ORDER BY m.id ASC",
-      [tournamentId, isPrelim]
+      "WHERE m.tournament_id = ? AND m.match_type = ? ORDER BY m.id ASC",
+      [tournamentId, matchType]
     );
     res.json(rows);
   } catch (error) {
@@ -163,18 +162,18 @@ router.get("/tournament/:tournamentId/type/:prelim", async (req, res) => {
   }
 });
 
-// GET matches by type (prelim or main) for all tournaments
-router.get("/type/:prelim", async (req, res) => {
+// GET matches by type for all tournaments
+router.get("/type/:matchType", async (req, res) => {
   try {
-    const isPrelim = req.params.prelim === "prelim";
+    const { matchType } = req.params;
     const [rows] = await pool.query(
       "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name, t.name as tournament_name " +
       "FROM matches m " +
       "JOIN teams ta ON m.team_a_id = ta.id " +
       "JOIN teams tb ON m.team_b_id = tb.id " +
       "JOIN tournaments t ON m.tournament_id = t.id " +
-      "WHERE m.is_prelim = ? ORDER BY m.tournament_id, m.id ASC",
-      [isPrelim]
+      "WHERE m.match_type = ? ORDER BY m.tournament_id, m.id ASC",
+      [matchType]
     );
     res.json(rows);
   } catch (error) {
@@ -203,7 +202,7 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
       }
       
       // Delete existing preliminary matches for this tournament
-      await connection.query("DELETE FROM matches WHERE tournament_id = ? AND is_prelim = TRUE", [tournamentId]);
+      await connection.query("DELETE FROM matches WHERE tournament_id = ? AND match_type = 'preliminaires'", [tournamentId]);
       
       // Reset preliminary points for all teams in this tournament
       await connection.query(
@@ -226,6 +225,21 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
         }
       }
       
+      // Also create team_tournament associations if they don't exist
+      for (const team of (teams as any[])) {
+        const [existingAssoc] = await connection.query(
+          "SELECT id FROM team_tournament WHERE team_id = ? AND tournament_id = ?",
+          [team.id, tournamentId]
+        );
+        
+        if ((existingAssoc as any[]).length === 0) {
+          await connection.query(
+            "INSERT INTO team_tournament (team_id, tournament_id, registration_date) VALUES (?, ?, NOW())",
+            [team.id, tournamentId]
+          );
+        }
+      }
+      
       const matches = [];
       for (let i = 0; i < (teams as any[]).length; i++) {
         for (let j = i + 1; j < (teams as any[]).length; j++) {
@@ -235,7 +249,7 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
       
       for (const match of matches) {
         await connection.query(
-          "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id) VALUES (?, TRUE, ?, ?)", 
+          "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id) VALUES (?, 'preliminaires', ?, ?)", 
           [tournamentId, match.team_a_id, match.team_b_id]
         );
       }
@@ -283,7 +297,7 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
       }
       
       // Delete existing main matches for this tournament
-      await connection.query("DELETE FROM matches WHERE tournament_id = ? AND is_prelim = FALSE", [tournamentId]);
+      await connection.query("DELETE FROM matches WHERE tournament_id = ? AND match_type LIKE 'principal_%'", [tournamentId]);
       
       // Shuffle teams with similar prelim points to add some randomness while respecting rankings
       const groupedTeams: any[][] = [];
@@ -312,7 +326,10 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
       
       // Shuffle each group of teams with the same points
       for (let i = 0; i < groupedTeams.length; i++) {
-        groupedTeams[i] = groupedTeams[i].sort(() => Math.random() - 0.5);
+        const group = groupedTeams[i];
+        if (group && group.length > 0) {
+          groupedTeams[i] = group.sort(() => Math.random() - 0.5);
+        }
       }
       
       // Flatten the groups back into a single array
@@ -325,7 +342,7 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
       
       for (const match of newMatches) {
         await connection.query(
-          "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id) VALUES (?, FALSE, ?, ?)", 
+          "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id) VALUES (?, 'principal_1', ?, ?)", 
           [tournamentId, match.team_a_id, match.team_b_id]
         );
       }

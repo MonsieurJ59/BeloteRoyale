@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS team_tournament_stats (
 CREATE TABLE IF NOT EXISTS matches (
   id INT AUTO_INCREMENT PRIMARY KEY,
   tournament_id INT NOT NULL,
-  is_prelim BOOLEAN NOT NULL DEFAULT TRUE, -- TRUE = préliminaires, FALSE = principal
+  match_type VARCHAR(50) NOT NULL DEFAULT 'preliminaires', -- 'preliminaires' ou 'principal_X'
+  match_order INT DEFAULT 1,
   team_a_id INT NOT NULL,
   team_b_id INT NOT NULL,
   score_a INT DEFAULT 0,

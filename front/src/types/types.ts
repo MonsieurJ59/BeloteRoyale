@@ -3,6 +3,9 @@
 // Définition des interfaces TypeScript pour l'application
 // Ces interfaces définissent la structure des données manipulées
 
+// Type pour les matchs : soit "preliminaires", soit "principal_X" avec X = 1, 2, 3, ...
+export type MatchType = 'preliminaires' | `principal_${number}`;
+
 /**
  * Interface représentant une équipe
  * Une équipe est composée de deux joueurs et participe aux tournois
@@ -27,7 +30,8 @@ export interface Match {
   score_a: number;      // Score de la première équipe
   score_b: number;      // Score de la deuxième équipe
   winner_id: number | null; // Identifiant de l'équipe gagnante (null si match nul ou non terminé)
-  is_prelim: boolean;   // Indique si c'est un match préliminaire (true) ou principal (false)
+  match_type: MatchType; // Type de match : "preliminaires" ou "principal_X"
+  match_order?: number;  // Ordre du match dans le tournoi
   created_at: Date;     // Date de création du match
 }
 

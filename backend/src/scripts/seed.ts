@@ -92,8 +92,8 @@ async function seed() {
     if (tournamentId !== null) {
       // Version avec tournoi
       await pool.query(
-        "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [tournamentId, true, team1Id, team2Id, 520, 480, team1Id]
+        "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [tournamentId, 'preliminaires', team1Id, team2Id, 520, 480, team1Id]
       );
       
       // Mettre à jour les stats si la table team_tournament_stats existe
@@ -109,8 +109,8 @@ async function seed() {
       }
       
       await pool.query(
-        "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [tournamentId, true, team3Id, team4Id, 230, 460, team4Id]
+        "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [tournamentId, 'preliminaires', team3Id, team4Id, 230, 460, team4Id]
       );
       
       if ((statsTable as any[]).length > 0) {
@@ -126,8 +126,8 @@ async function seed() {
     } else {
       // Version sans tournoi (ancienne structure)
       await pool.query(
-        "INSERT INTO matches (is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [true, team1Id, team2Id, 520, 480, team1Id]
+        "INSERT INTO matches (match_type, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
+        ['preliminaires', team1Id, team2Id, 520, 480, team1Id]
       );
       
       // Mettre à jour les stats dans la table teams si nécessaire
@@ -147,8 +147,8 @@ async function seed() {
       }
       
       await pool.query(
-        "INSERT INTO matches (is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [true, team3Id, team4Id, 230, 460, team4Id]
+        "INSERT INTO matches (match_type, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
+        ['preliminaires', team3Id, team4Id, 230, 460, team4Id]
       );
       
       if ((teamsColumns as any[]).length > 0) {
@@ -167,8 +167,8 @@ async function seed() {
     if (tournamentId !== null) {
       // Version avec tournoi
       await pool.query(
-        "INSERT INTO matches (tournament_id, is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [tournamentId, false, team1Id, team4Id, 1000, 750, team1Id]
+        "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [tournamentId, 'principal_1', team1Id, team4Id, 1000, 750, team1Id]
       );
       
       if ((statsTable as any[]).length > 0) {
@@ -184,8 +184,8 @@ async function seed() {
     } else {
       // Version sans tournoi (ancienne structure)
       await pool.query(
-        "INSERT INTO matches (is_prelim, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [false, team1Id, team4Id, 1000, 750, team1Id]
+        "INSERT INTO matches (match_type, team_a_id, team_b_id, score_a, score_b, winner_id) VALUES (?, ?, ?, ?, ?, ?)",
+        ['principal_1', team1Id, team4Id, 1000, 750, team1Id]
       );
     }
 
