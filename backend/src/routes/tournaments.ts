@@ -35,7 +35,7 @@ router.get("/:id", async (req, res) => {
 // POST create tournament
 router.post("/", async (req, res) => {
   try {
-    const { name, date, status = 'upcoming' } = req.body as CreateTournamentDto;
+    const { name, date, status = 'upcoming', match_configs } = req.body as CreateTournamentDto;
     
     if (!name) return res.status(400).json({ error: "Name is required" });
     if (!date) return res.status(400).json({ error: "Date is required" });
@@ -47,6 +47,21 @@ router.post("/", async (req, res) => {
     );
     
     const tournamentId = (result as any).insertId;
+    
+    // Create default match configs if none provided
+    const configs = match_configs || [
+      { tournament_id: tournamentId, match_type: 'preliminaires', is_enabled: true, max_matches: 10 },
+      { tournament_id: tournamentId, match_type: 'principal_1', is_enabled: true, max_matches: 5 }
+    ];
+    
+    // Insert match configs
+    for (const config of configs) {
+      await pool.query(
+        "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+        [tournamentId, config.match_type, config.is_enabled, config.max_matches]
+      );
+    }
+    
     const [tournaments] = await pool.query("SELECT * FROM tournaments WHERE id = ?", [tournamentId]);
     res.status(201).json((tournaments as any[])[0]);
   } catch (error) {

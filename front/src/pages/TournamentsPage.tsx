@@ -3,16 +3,23 @@ import React, { useState, useContext, useMemo } from 'react'; // Hooks React de 
 import { Link } from 'react-router-dom'; // Composant de navigation
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
+import TournamentModal from '../components/TournamentModal'; // Modal pour créer/modifier un tournoi
 import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
 import { theme } from '../styles/theme'; // Thème avec couleurs modernes
 
 // Composant principal de la page des tournois
 const TournamentsPage: React.FC = () => {
   // Utilisation du contexte pour accéder aux données des tournois
-  const { tournaments, loading, error } = useContext(TournamentContext);
+  const { tournaments, loading, error, createTournament, updateTournament, deleteTournament } = useContext(TournamentContext);
   
   // État local pour gérer l'onglet actif (filtre)
   const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'in_progress' | 'completed'>('all');
+  
+  // États pour la gestion de la modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   // Filtrer les tournois en fonction de l'onglet actif
   // useMemo permet de mémoriser le résultat et de ne recalculer que si les dépendances changent
@@ -44,10 +51,59 @@ const TournamentsPage: React.FC = () => {
     }
   };
 
+  // Fonctions pour gérer la modal
+  const handleCreateTournament = () => {
+    setModalMode('create');
+    setSelectedTournament(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditTournament = (tournament: Tournament) => {
+    setModalMode('edit');
+    setSelectedTournament(tournament);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTournament(null);
+  };
+
+  const handleSubmitTournament = async (tournamentData: Omit<Tournament, 'id' | 'created_at'>) => {
+    try {
+      if (modalMode === 'create') {
+        await createTournament(tournamentData);
+      } else if (selectedTournament) {
+        await updateTournament(selectedTournament.id, tournamentData);
+      }
+      handleCloseModal();
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du tournoi:', error);
+    }
+  };
+
+  const handleDeleteTournament = async (tournament: Tournament) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le tournoi "${tournament.name}" ?`)) {
+      try {
+        setIsDeleting(tournament.id);
+        await deleteTournament(tournament.id);
+      } catch (error) {
+        console.error('Erreur lors de la suppression du tournoi:', error);
+      } finally {
+        setIsDeleting(null);
+      }
+    }
+  };
+
   // Rendu du composant
   return (
     <PageContainer>
-      <Title>Tournois</Title>
+      <HeaderContainer>
+        <Title>Tournois</Title>
+        <CreateButton onClick={handleCreateTournament}>
+          + Créer un tournoi
+        </CreateButton>
+      </HeaderContainer>
       
       {/* Onglets de filtrage pour sélectionner les tournois par statut */}
       <TabsContainer>
@@ -101,6 +157,26 @@ const TournamentsPage: React.FC = () => {
               <TournamentStatus $status={tournament.status}>
                 {getStatusLabel(tournament.status)}
               </TournamentStatus>
+              
+              {/* Boutons d'action */}
+              <ActionButtons>
+                <ActionButton 
+                  onClick={() => handleEditTournament(tournament)}
+                  $variant="edit"
+                  title="Modifier le tournoi"
+                >
+                  ✏️
+                </ActionButton>
+                <ActionButton 
+                  onClick={() => handleDeleteTournament(tournament)}
+                  $variant="delete"
+                  disabled={isDeleting === tournament.id}
+                  title="Supprimer le tournoi"
+                >
+                  {isDeleting === tournament.id ? '⏳' : '🗑️'}
+                </ActionButton>
+              </ActionButtons>
+              
               {/* Nom du tournoi */}
               <TournamentName>{tournament.name}</TournamentName>
               {/* Date du tournoi formatée */}
@@ -113,6 +189,15 @@ const TournamentsPage: React.FC = () => {
           ))}
         </TournamentsGrid>
       )}
+      
+      {/* Modal pour créer/modifier un tournoi */}
+      <TournamentModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmitTournament}
+        tournament={selectedTournament}
+        mode={modalMode}
+      />
     </PageContainer>
   );
 };
@@ -123,26 +208,74 @@ const PageContainer = styled.div`
   width: 100%;
 `;
 
+// Style du conteneur d'en-tête
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${theme.spacing.xxl};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    flex-direction: column;
+    gap: ${theme.spacing.lg};
+    align-items: stretch;
+  }
+`;
+
 // Style du titre principal
 const Title = styled.h1`
   font-family: ${theme.typography.fontFamily.heading};
   font-size: ${theme.typography.fontSize['4xl']};
   font-weight: ${theme.typography.fontWeight.bold};
-  margin-bottom: ${theme.spacing.xxl};
   color: ${theme.colors.text.primary};
-  text-align: center;
   position: relative;
+  margin: 0;
   
   &::after {
     content: '';
     position: absolute;
     bottom: -${theme.spacing.sm};
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
     width: 80px;
     height: 4px;
     background: linear-gradient(90deg, ${theme.colors.accent.main}, ${theme.colors.accent.light});
     border-radius: ${theme.borderRadius.sm};
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    text-align: center;
+    
+    &::after {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+`;
+
+// Style du bouton de création
+const CreateButton = styled.button`
+  padding: ${theme.spacing.md} ${theme.spacing.xl};
+  background-color: ${theme.colors.primary.main};
+  color: ${theme.colors.text.light};
+  border: none;
+  border-radius: ${theme.borderRadius.md};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  font-size: ${theme.typography.fontSize.base};
+  cursor: pointer;
+  transition: all ${theme.transitions.fast};
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.sm};
+  
+  &:hover {
+    background-color: ${theme.colors.primary.light};
+    transform: translateY(-2px);
+    box-shadow: ${theme.shadows.md};
+  }
+  
+  &:focus {
+    outline: 2px solid ${theme.colors.accent.main};
+    outline-offset: 2px;
   }
 `;
 
@@ -231,6 +364,58 @@ const TournamentCard = styled.div`
     transform: translateY(-8px);
     box-shadow: ${theme.shadows.lg};
     border-color: ${theme.colors.accent.main};
+  }
+`;
+
+// Style du conteneur des boutons d'action
+const ActionButtons = styled.div`
+  position: absolute;
+  top: ${theme.spacing.lg};
+  left: ${theme.spacing.lg};
+  display: flex;
+  gap: ${theme.spacing.xs};
+  z-index: 1;
+`;
+
+// Style des boutons d'action
+const ActionButton = styled.button<{ $variant: 'edit' | 'delete' }>`
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: ${theme.borderRadius.sm};
+  cursor: pointer;
+  transition: all ${theme.transitions.fast};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  
+  background-color: ${props => props.$variant === 'edit' 
+    ? theme.colors.status.info + '20' 
+    : theme.colors.status.error + '20'};
+  
+  color: ${props => props.$variant === 'edit' 
+    ? theme.colors.status.info 
+    : theme.colors.status.error};
+  
+  &:hover:not(:disabled) {
+    background-color: ${props => props.$variant === 'edit' 
+      ? theme.colors.status.info + '30' 
+      : theme.colors.status.error + '30'};
+    transform: scale(1.1);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  &:focus {
+    outline: 2px solid ${props => props.$variant === 'edit' 
+      ? theme.colors.status.info 
+      : theme.colors.status.error};
+    outline-offset: 2px;
   }
 `;
 
