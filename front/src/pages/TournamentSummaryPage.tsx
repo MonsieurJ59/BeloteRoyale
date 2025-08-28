@@ -31,28 +31,25 @@ const TournamentSummaryPage: React.FC = () => {
         setLoading(true);
         
         // Récupération des données en parallèle
-        const [tournamentRes, teamsRes, matchesRes, statsRes] = await Promise.all([
+        const [tournamentRes, teamRankingsRes, matchesRes] = await Promise.all([
           fetch(`http://localhost:4000/tournaments/${id}`),
-          fetch(`http://localhost:4000/teams`),
-          fetch(`http://localhost:4000/matches?tournament_id=${id}`),
-          fetch(`http://localhost:4000/team-tournament-stats/tournament/${id}`)
+          fetch(`http://localhost:4000/teams/rankings/tournament/${id}`),
+          fetch(`http://localhost:4000/matches?tournament_id=${id}`)
         ]);
 
         if (!tournamentRes.ok) throw new Error('Tournoi non trouvé');
-        if (!teamsRes.ok) throw new Error('Erreur lors du chargement des équipes');
+        if (!teamRankingsRes.ok) throw new Error('Erreur lors du chargement des équipes du tournoi');
         if (!matchesRes.ok) throw new Error('Erreur lors du chargement des matchs');
-        if (!statsRes.ok) throw new Error('Erreur lors du chargement des statistiques');
 
         const tournamentData = await tournamentRes.json();
-        const teamsData = await teamsRes.json();
+        const teamRankingsData = await teamRankingsRes.json();
         const matchesData = await matchesRes.json();
-        const statsData = await statsRes.json();
 
         setTournament(tournamentData);
         setMatches(matchesData);
 
-        // Calcul du classement
-        calculateRankings(teamsData, statsData, matchesData);
+        // Calcul du classement avec les données déjà filtrées par tournoi
+        calculateRankingsFromBackend(teamRankingsData, matchesData);
         
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -64,47 +61,48 @@ const TournamentSummaryPage: React.FC = () => {
     fetchTournamentData();
   }, [id]);
 
-  // Fonction pour calculer le classement des équipes
-  const calculateRankings = (teamsData: Team[], statsData: TeamTournamentStats[], matchesData: Match[]) => {
-    const teamRankings: TeamRanking[] = teamsData
-      .map(team => {
-        const teamStats = statsData.find(stat => stat.team_id === team.id);
-        if (!teamStats) return null;
+  // Fonction pour calculer le classement avec les données du backend déjà filtrées
+  const calculateRankingsFromBackend = (teamRankingsData: any[], matchesData: Match[]) => {
+    const teamRankings: TeamRanking[] = teamRankingsData.map((teamData, index) => {
+      // Reconstitution de l'objet Team à partir des données du backend
+      const team: Team = {
+        id: teamData.id,
+        name: teamData.name,
+        player1: teamData.player1,
+        player2: teamData.player2,
+        created_at: new Date() // Date par défaut, non critique pour l'affichage
+      };
 
-        // Calcul du score préliminaire total pour cette équipe
-        const prelimMatches = matchesData.filter(match => 
-          match.match_type === 'preliminaires' && 
-          (match.team_a_id === team.id || match.team_b_id === team.id)
-        );
-        
-        const prelimScore = prelimMatches.reduce((total, match) => {
-          if (match.team_a_id === team.id) {
-            return total + (match.score_a || 0);
-          } else {
-            return total + (match.score_b || 0);
-          }
-        }, 0);
+      // Reconstitution des stats à partir des données du backend
+      const stats: TeamTournamentStats = {
+        id: 0, // Non utilisé dans l'affichage
+        team_id: teamData.id,
+        tournament_id: parseInt(id!),
+        wins: teamData.wins || 0,
+        losses: teamData.losses || 0,
+        prelim_points: teamData.prelim_points || 0
+      };
 
-        return {
-          team,
-          stats: teamStats,
-          prelimScore,
-          rank: 0 // Sera calculé après le tri
-        };
-      })
-      .filter(Boolean) as TeamRanking[];
+      // Calcul du score préliminaire total pour cette équipe
+      const prelimMatches = matchesData.filter(match => 
+        match.match_type === 'preliminaires' && 
+        (match.team_a_id === team.id || match.team_b_id === team.id)
+      );
+      
+      const prelimScore = prelimMatches.reduce((total, match) => {
+        if (match.team_a_id === team.id) {
+          return total + (match.score_a || 0);
+        } else {
+          return total + (match.score_b || 0);
+        }
+      }, 0);
 
-    // Tri par nombre de victoires (décroissant), puis par score préliminaire (décroissant)
-    teamRankings.sort((a, b) => {
-      if (a.stats.wins !== b.stats.wins) {
-        return b.stats.wins - a.stats.wins;
-      }
-      return b.prelimScore - a.prelimScore;
-    });
-
-    // Attribution des rangs
-    teamRankings.forEach((ranking, index) => {
-      ranking.rank = index + 1;
+      return {
+        team,
+        stats,
+        prelimScore,
+        rank: index + 1 // Les données du backend sont déjà triées
+      };
     });
 
     setRankings(teamRankings);

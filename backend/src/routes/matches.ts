@@ -4,16 +4,27 @@ import type { CreateMatchDto, UpdateMatchDto } from "../types";
 
 const router = Router();
 
-// GET all matches
-router.get("/", async (_req, res) => {
+// GET all matches (with optional tournament_id filter)
+router.get("/", async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name, t.name as tournament_name " +
+    const { tournament_id } = req.query;
+    
+    let query = "SELECT m.*, ta.name as team_a_name, tb.name as team_b_name, t.name as tournament_name " +
       "FROM matches m " +
       "JOIN teams ta ON m.team_a_id = ta.id " +
       "JOIN teams tb ON m.team_b_id = tb.id " +
-      "JOIN tournaments t ON m.tournament_id = t.id"
-    );
+      "JOIN tournaments t ON m.tournament_id = t.id";
+    
+    const queryParams: any[] = [];
+    
+    if (tournament_id) {
+      query += " WHERE m.tournament_id = ?";
+      queryParams.push(tournament_id);
+    }
+    
+    query += " ORDER BY m.id ASC";
+    
+    const [rows] = await pool.query(query, queryParams);
     res.json(rows);
   } catch (error) {
     console.error("Error fetching matches:", error);
