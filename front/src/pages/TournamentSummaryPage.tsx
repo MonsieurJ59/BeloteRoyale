@@ -108,6 +108,50 @@ const TournamentSummaryPage: React.FC = () => {
     setRankings(teamRankings);
   };
 
+  // Fonction pour grouper les matchs par type
+  const getMatchesByType = () => {
+    const matchTypes = new Map<string, { type: string; matches: Match[]; displayName: string }>();
+    
+    matches.forEach(match => {
+      if (!matchTypes.has(match.match_type)) {
+        let displayName = '';
+        if (match.match_type === 'preliminaires') {
+          displayName = 'Matchs préliminaires';
+        } else if (match.match_type.startsWith('principal_')) {
+          const roundNumber = match.match_type.split('_')[1];
+          displayName = `Matchs principaux - Manche ${roundNumber}`;
+        } else {
+          displayName = match.match_type;
+        }
+        
+        matchTypes.set(match.match_type, {
+          type: match.match_type,
+          matches: [],
+          displayName
+        });
+      }
+      matchTypes.get(match.match_type)!.matches.push(match);
+    });
+
+    // Trier les types de matchs : préliminaires d'abord, puis principal_1, principal_2, etc.
+    return Array.from(matchTypes.values()).sort((a, b) => {
+      if (a.type === 'preliminaires') return -1;
+      if (b.type === 'preliminaires') return 1;
+      if (a.type.startsWith('principal_') && b.type.startsWith('principal_')) {
+        const aNum = parseInt(a.type.split('_')[1]);
+        const bNum = parseInt(b.type.split('_')[1]);
+        return aNum - bNum;
+      }
+      return a.type.localeCompare(b.type);
+    });
+  };
+
+  // Fonction pour obtenir le nom d'une équipe par son ID
+  const getTeamName = (teamId: number): string => {
+    const teamRanking = rankings.find(ranking => ranking.team.id === teamId);
+    return teamRanking ? teamRanking.team.name : `Équipe #${teamId}`;
+  };
+
   // Fonction pour formater la date
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -194,6 +238,58 @@ const TournamentSummaryPage: React.FC = () => {
           </StatCard>
         </StatsGrid>
       </StatsSection>
+
+      {/* Tableau des matchs par type */}
+      <MatchesSection>
+        <SectionTitle>Matchs du tournoi</SectionTitle>
+        {matches.length === 0 ? (
+          <EmptyMessage>Aucun match programmé pour ce tournoi.</EmptyMessage>
+        ) : (
+          <MatchesByType>
+            {getMatchesByType().map(({ type, matches: typeMatches, displayName }) => (
+              <MatchTypeSection key={type}>
+                <MatchTypeTitle>{displayName} ({typeMatches.length} match{typeMatches.length > 1 ? 's' : ''})</MatchTypeTitle>
+                <MatchesTable>
+                  <MatchesTableHeader>
+                    <MatchHeaderCell>Match</MatchHeaderCell>
+                    <MatchHeaderCell>Équipe A</MatchHeaderCell>
+                    <MatchHeaderCell>Score</MatchHeaderCell>
+                    <MatchHeaderCell>Équipe B</MatchHeaderCell>
+                    <MatchHeaderCell>Statut</MatchHeaderCell>
+                  </MatchesTableHeader>
+                  <MatchesTableBody>
+                    {typeMatches.map((match, index) => (
+                      <MatchRow key={match.id} $completed={!!match.winner_id}>
+                        <MatchCell>#{index + 1}</MatchCell>
+                        <TeamMatchCell>
+                          <TeamMatchName>{getTeamName(match.team_a_id)}</TeamMatchName>
+                        </TeamMatchCell>
+                        <ScoreCell>
+                          <Score $isWinner={match.winner_id === match.team_a_id}>
+                            {match.score_a || 0}
+                          </Score>
+                          <ScoreSeparator>-</ScoreSeparator>
+                          <Score $isWinner={match.winner_id === match.team_b_id}>
+                            {match.score_b || 0}
+                          </Score>
+                        </ScoreCell>
+                        <TeamMatchCell>
+                          <TeamMatchName>{getTeamName(match.team_b_id)}</TeamMatchName>
+                        </TeamMatchCell>
+                        <StatusCell>
+                          <StatusBadgeMatch $status={match.winner_id ? 'completed' : 'pending'}>
+                            {match.winner_id ? 'Terminé' : 'En attente'}
+                          </StatusBadgeMatch>
+                        </StatusCell>
+                      </MatchRow>
+                    ))}
+                  </MatchesTableBody>
+                </MatchesTable>
+              </MatchTypeSection>
+            ))}
+          </MatchesByType>
+        )}
+      </MatchesSection>
 
       {/* Classement des équipes */}
       <RankingSection>
@@ -497,6 +593,192 @@ const StatCell = styled.div<{ $highlight?: boolean }>`
   justify-content: center;
   font-weight: ${props => props.$highlight ? theme.typography.fontWeight.bold : theme.typography.fontWeight.medium};
   color: ${props => props.$highlight ? theme.colors.primary.main : theme.colors.text.primary};
+`;
+
+// Styles pour la section des matchs
+const MatchesSection = styled.section`
+  margin-bottom: ${theme.spacing.xxl};
+`;
+
+const MatchesByType = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing.xl};
+`;
+
+const MatchTypeSection = styled.div`
+  background: ${theme.colors.background.card};
+  border-radius: ${theme.borderRadius.lg};
+  overflow: hidden;
+  box-shadow: ${theme.shadows.sm};
+  border: 1px solid ${theme.colors.border.light};
+`;
+
+const MatchTypeTitle = styled.h3`
+  font-family: ${theme.typography.fontFamily.heading};
+  font-size: ${theme.typography.fontSize.xl};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  color: ${theme.colors.text.light};
+  background: ${theme.colors.primary.main};
+  padding: ${theme.spacing.lg};
+  margin: 0;
+  text-align: center;
+`;
+
+const MatchesTable = styled.div`
+  overflow-x: auto;
+`;
+
+const MatchesTableHeader = styled.div`
+  display: grid;
+  grid-template-columns: 80px 1fr 120px 1fr 100px;
+  background: ${theme.colors.neutral.gray100};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  color: ${theme.colors.text.primary};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    grid-template-columns: 60px 1fr 100px 1fr 80px;
+    font-size: ${theme.typography.fontSize.sm};
+  }
+`;
+
+const MatchHeaderCell = styled.div`
+  padding: ${theme.spacing.md};
+  text-align: center;
+  border-right: 1px solid ${theme.colors.border.light};
+  
+  &:last-child {
+    border-right: none;
+  }
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing.sm};
+  }
+`;
+
+const MatchesTableBody = styled.div``;
+
+const MatchRow = styled.div<{ $completed: boolean }>`
+  display: grid;
+  grid-template-columns: 80px 1fr 120px 1fr 100px;
+  border-bottom: 1px solid ${theme.colors.border.light};
+  transition: all ${theme.transitions.fast};
+  
+  &:hover {
+    background-color: ${theme.colors.neutral.gray50};
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  ${props => props.$completed && `
+    background: linear-gradient(90deg, ${theme.colors.status.success}10, transparent);
+    border-left: 4px solid ${theme.colors.status.success};
+  `}
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    grid-template-columns: 60px 1fr 100px 1fr 80px;
+  }
+`;
+
+const MatchCell = styled.div`
+  padding: ${theme.spacing.md};
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: ${theme.typography.fontWeight.medium};
+  color: ${theme.colors.text.secondary};
+  border-right: 1px solid ${theme.colors.border.light};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing.sm};
+    font-size: ${theme.typography.fontSize.sm};
+  }
+`;
+
+const TeamMatchCell = styled.div`
+  padding: ${theme.spacing.md};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid ${theme.colors.border.light};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing.sm};
+  }
+`;
+
+const TeamMatchName = styled.div`
+  font-weight: ${theme.typography.fontWeight.semibold};
+  color: ${theme.colors.text.primary};
+  text-align: center;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.typography.fontSize.sm};
+  }
+`;
+
+const ScoreCell = styled.div`
+  padding: ${theme.spacing.md};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing.sm};
+  border-right: 1px solid ${theme.colors.border.light};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing.sm};
+  }
+`;
+
+const Score = styled.span<{ $isWinner?: boolean }>`
+  font-weight: ${props => props.$isWinner ? theme.typography.fontWeight.bold : theme.typography.fontWeight.medium};
+  color: ${props => props.$isWinner ? theme.colors.status.success : theme.colors.text.primary};
+  font-size: ${theme.typography.fontSize.lg};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    font-size: ${theme.typography.fontSize.base};
+  }
+`;
+
+const ScoreSeparator = styled.span`
+  color: ${theme.colors.text.secondary};
+  font-weight: ${theme.typography.fontWeight.medium};
+`;
+
+const StatusCell = styled.div`
+  padding: ${theme.spacing.md};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing.sm};
+  }
+`;
+
+const StatusBadgeMatch = styled.span<{ $status: 'completed' | 'pending' }>`
+  padding: ${theme.spacing.xs} ${theme.spacing.sm};
+  border-radius: ${theme.borderRadius.full};
+  font-size: ${theme.typography.fontSize.xs};
+  font-weight: ${theme.typography.fontWeight.semibold};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: ${props => {
+    switch (props.$status) {
+      case 'completed': return theme.colors.status.success;
+      case 'pending': return theme.colors.status.warning;
+      default: return theme.colors.neutral.gray600;
+    }
+  }};
+  color: ${theme.colors.text.light};
+  
+  @media (max-width: ${theme.breakpoints.md}) {
+    padding: ${theme.spacing.xs};
+    font-size: ${theme.typography.fontSize.xs};
+  }
 `;
 
 export default TournamentSummaryPage;
