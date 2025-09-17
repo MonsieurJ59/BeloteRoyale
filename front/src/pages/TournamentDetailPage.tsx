@@ -9,7 +9,7 @@ import { TournamentContext } from '../context/TournamentContext';
 import { MatchContext } from '../context/MatchContext';
 import { TeamContext } from '../context/TeamContext';
 // Importation des types TypeScript
-import type { Tournament, Match, Team, TeamTournamentStats } from '../types/types';
+import type { Match, Tournament, TeamTournamentStats } from '../types/types';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -107,11 +107,46 @@ const TournamentStatus = styled.span<{ status: string }>`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.8rem;
   color: #2c3e50;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  margin: 30px 0 20px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    font-size: 1.3rem;
+    margin: 25px 0 15px 0;
+    flex-direction: column;
+    gap: 10px;
+  }
+`;
+
+const GenerateButton = styled.button`
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: #2980b9;
+  }
+  
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const NoDataMessage = styled.p`
+  text-align: center;
+  color: #7f8c8d;
+  font-style: italic;
+  margin: 20px 0;
 `;
 
 const MatchesGrid = styled.div`
@@ -334,11 +369,39 @@ const TournamentDetailPage = () => {
     setEditingMatch(null); // Sortir du mode édition
   };
   
-  // Fonction utilitaire pour obtenir le nom d'une équipe à partir de son ID
-  const getTeamName = (teamId: number) => {
-    // Recherche de l'équipe dans la liste des équipes
+  // Fonction pour obtenir le nom d'une équipe à partir de son ID
+  const getTeamName = (teamId: number): string => {
     const team = teams.find(t => t.id === teamId);
-    return team ? team.name : 'Équipe inconnue'; // Retourne le nom ou une valeur par défaut
+    return team ? team.name : `Équipe ${teamId}`;
+  };
+  
+  // Fonctions pour générer les matchs
+  const generatePrelimMatches = async (tournamentId: number) => {
+    try {
+      const response = await fetch(`http://localhost:4000/matches/tournament/${tournamentId}/generate/prelim`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        // Recharger les matchs
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la génération des matchs préliminaires:', error);
+    }
+  };
+  
+  const generateMainMatches = async (tournamentId: number) => {
+    try {
+      const response = await fetch(`http://localhost:4000/matches/tournament/${tournamentId}/generate/main`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        // Recharger les matchs
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la génération des matchs principaux:', error);
+    }
   };
   
   // Fonction utilitaire pour formater une date
@@ -399,8 +462,8 @@ const TournamentDetailPage = () => {
   
   // Préparation des données pour l'affichage
   // Séparer les matchs préliminaires et principaux
-  const prelimMatches = tournamentMatches.filter(m => m.is_prelim); // Matchs préliminaires
-  const mainMatches = tournamentMatches.filter(m => !m.is_prelim); // Matchs principaux
+  const prelimMatches = tournamentMatches.filter(m => m.match_type === 'preliminaires'); // Matchs préliminaires
+  const mainMatches = tournamentMatches.filter(m => m.match_type.startsWith('principal_')); // Matchs principaux
   
   // Rendu principal du composant
   return (
@@ -461,10 +524,14 @@ const TournamentDetailPage = () => {
         <p>Aucune statistique disponible pour ce tournoi.</p>
       )}
       
-      {/* Section des matchs préliminaires - affichée uniquement s'il y a des matchs */}
-      {prelimMatches.length > 0 && (
-        <>
-          <SectionTitle>Matchs préliminaires</SectionTitle>
+      {/* Section des matchs préliminaires */}
+      <SectionTitle>
+        Matchs préliminaires ({prelimMatches.length})
+        <GenerateButton onClick={() => generatePrelimMatches(tournament.id)}>
+          Générer les matchs préliminaires
+        </GenerateButton>
+      </SectionTitle>
+      {prelimMatches.length > 0 ? (
           <MatchesGrid>
             {/* Création des cartes de match avec map */}
             {prelimMatches.map(match => (
@@ -520,68 +587,70 @@ const TournamentDetailPage = () => {
               </MatchCard>
             ))}
           </MatchesGrid>
-        </>
+      ) : (
+        <NoDataMessage>Aucun match préliminaire pour ce tournoi</NoDataMessage>
       )}
       
-      {/* Section des matchs principaux - affichée uniquement s'il y a des matchs */}
-      {mainMatches.length > 0 && (
-        <>
-          <SectionTitle>Matchs principaux</SectionTitle>
-          <MatchesGrid>
-            {/* Structure identique à celle des matchs préliminaires */}
-            {mainMatches.map(match => (
-              <MatchCard key={match.id}>
-                <MatchHeader>
-                  <MatchType isPrelim={false}>Principal</MatchType>
-                </MatchHeader>
-                <TeamsContainer>
-                  <TeamName>{getTeamName(match.team_a_id)}</TeamName>
-                  <VersusText>VS</VersusText>
-                  <TeamName>{getTeamName(match.team_b_id)}</TeamName>
-                </TeamsContainer>
-                
-                {editingMatch === match.id ? (
-                  <>
-                    <ScoreContainer>
-                      <ScoreInput 
-                        type="number" 
-                        value={scoreA} 
-                        onChange={(e) => setScoreA(parseInt(e.target.value) || 0)} 
-                      />
-                      <VersusText>-</VersusText>
-                      <ScoreInput 
-                        type="number" 
-                        value={scoreB} 
-                        onChange={(e) => setScoreB(parseInt(e.target.value) || 0)} 
-                      />
-                    </ScoreContainer>
-                    <UpdateScoreButton onClick={() => handleUpdateScore(match.id)}>
-                      Mettre à jour
+      {/* Section des matchs principaux */}
+      <SectionTitle>
+        Matchs principaux ({mainMatches.length})
+        <GenerateButton onClick={() => generateMainMatches(tournament.id)}>
+          Générer les matchs principaux
+        </GenerateButton>
+      </SectionTitle>
+      {mainMatches.length > 0 ? (
+        <MatchesGrid>
+          {mainMatches.map((match: Match) => (
+            <MatchCard key={match.id}>
+              <MatchHeader>
+                <MatchType isPrelim={false}>
+                  {match.match_type === 'preliminaires' ? 'Préliminaire' : `Principal ${match.match_type.replace('principal_', '')}`}
+                </MatchType>
+              </MatchHeader>
+              <TeamsContainer>
+                <TeamName>{getTeamName(match.team_a_id)}</TeamName>
+                <VersusText>VS</VersusText>
+                <TeamName>{getTeamName(match.team_b_id)}</TeamName>
+              </TeamsContainer>
+              
+              {editingMatch === match.id ? (
+                <>
+                  <ScoreContainer>
+                    <ScoreInput 
+                      type="number" 
+                      value={scoreA} 
+                      onChange={(e) => setScoreA(parseInt(e.target.value) || 0)} 
+                    />
+                    <VersusText>-</VersusText>
+                    <ScoreInput 
+                      type="number" 
+                      value={scoreB} 
+                      onChange={(e) => setScoreB(parseInt(e.target.value) || 0)} 
+                    />
+                  </ScoreContainer>
+                  <UpdateScoreButton onClick={() => handleUpdateScore(match.id)}>
+                    Mettre à jour
+                  </UpdateScoreButton>
+                </>
+              ) : (
+                <>
+                  <ScoreContainer>
+                    <Score isWinner={match.winner_id === match.team_a_id}>{match.score_a}</Score>
+                    <VersusText>-</VersusText>
+                    <Score isWinner={match.winner_id === match.team_b_id}>{match.score_b}</Score>
+                  </ScoreContainer>
+                  {tournament.status === 'in_progress' && (
+                    <UpdateScoreButton onClick={() => handleEditMatch(match)}>
+                      Modifier le score
                     </UpdateScoreButton>
-                  </>
-                ) : (
-                  <>
-                    <ScoreContainer>
-                      <Score isWinner={match.winner_id === match.team_a_id}>{match.score_a}</Score>
-                      <VersusText>-</VersusText>
-                      <Score isWinner={match.winner_id === match.team_b_id}>{match.score_b}</Score>
-                    </ScoreContainer>
-                    {tournament.status === 'in_progress' && (
-                      <UpdateScoreButton onClick={() => handleEditMatch(match)}>
-                        Modifier le score
-                      </UpdateScoreButton>
-                    )}
-                  </>
-                )}
-              </MatchCard>
-            ))}
-          </MatchesGrid>
-        </>
-      )}
-      
-      {/* Message affiché s'il n'y a aucun match */}
-      {tournamentMatches.length === 0 && (
-        <p>Aucun match n'a encore été créé pour ce tournoi.</p>
+                  )}
+                </>
+              )}
+            </MatchCard>
+          ))}
+        </MatchesGrid>
+      ) : (
+        <NoDataMessage>Aucun match principal pour ce tournoi</NoDataMessage>
       )}
     </PageContainer>
   );

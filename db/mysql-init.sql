@@ -25,10 +25,21 @@ CREATE TABLE IF NOT EXISTS team_tournament_stats (
   UNIQUE KEY unique_team_tournament (team_id, tournament_id)
 );
 
+CREATE TABLE IF NOT EXISTS tournament_match_configs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tournament_id INT NOT NULL,
+  match_type VARCHAR(50) NOT NULL, -- 'preliminaires' ou 'principal_X'
+  is_enabled BOOLEAN DEFAULT TRUE,
+  max_matches INT DEFAULT 10,
+  FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_tournament_match_type (tournament_id, match_type)
+);
+
 CREATE TABLE IF NOT EXISTS matches (
   id INT AUTO_INCREMENT PRIMARY KEY,
   tournament_id INT NOT NULL,
-  is_prelim BOOLEAN NOT NULL DEFAULT TRUE, -- TRUE = préliminaires, FALSE = principal
+  match_type VARCHAR(50) NOT NULL DEFAULT 'preliminaires', -- 'preliminaires' ou 'principal_X'
+  match_order INT DEFAULT 1,
   team_a_id INT NOT NULL,
   team_b_id INT NOT NULL,
   score_a INT DEFAULT 0,

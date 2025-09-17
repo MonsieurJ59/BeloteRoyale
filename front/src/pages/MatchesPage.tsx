@@ -299,8 +299,11 @@ const MatchesPage = () => {
     }
     
     if (selectedType !== 'all') {
-      const isPrelim = selectedType === 'prelim';
-      filtered = filtered.filter(match => match.is_prelim === isPrelim);
+      if (selectedType === 'prelim') {
+        filtered = filtered.filter(match => match.match_type === 'preliminaires');
+      } else if (selectedType === 'main') {
+        filtered = filtered.filter(match => match.match_type.startsWith('principal_'));
+      }
     }
     
     setFilteredMatches(filtered);
@@ -393,8 +396,8 @@ const MatchesPage = () => {
             <MatchCard key={match.id}>
               <MatchHeader>
                 <TournamentName>{getTournamentName(match.tournament_id)}</TournamentName>
-                <MatchType isPrelim={match.is_prelim}>
-                  {match.is_prelim ? 'Préliminaire' : 'Principal'}
+                <MatchType isPrelim={match.match_type === 'preliminaires'}>
+                  {match.match_type === 'preliminaires' ? 'Préliminaire' : `Principal ${match.match_type.replace('principal_', '')}`}
                 </MatchType>
               </MatchHeader>
               

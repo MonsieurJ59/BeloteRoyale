@@ -188,10 +188,7 @@ const Navbar = () => {
           <NavLink to="/teams" $active={isActive('/teams')} onClick={closeMenu}>
             Équipes
           </NavLink>
-          {/* Lien vers la page des matchs */}
-          <NavLink to="/matches" $active={isActive('/matches')} onClick={closeMenu}>
-            Matchs
-          </NavLink>
+          {/* Lien vers la page des matchs - supprimé car les matchs sont maintenant dans les tournois */}
         </NavLinks>
       </NavbarContent>
     </NavbarContainer>
