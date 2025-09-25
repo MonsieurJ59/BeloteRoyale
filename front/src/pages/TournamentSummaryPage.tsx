@@ -566,6 +566,12 @@ const TournamentSummaryPage: React.FC = () => {
               {getStatusLabel(tournament.status)}
             </StatusBadge>
           </InfoItem>
+          <InfoItem>
+            <InfoLabel>Manches principales:</InfoLabel>
+            <InfoValue>
+              {matchConfigs.find(c => c.match_type === 'principal_1' && c.is_enabled)?.max_matches ?? 1}
+            </InfoValue>
+          </InfoItem>
         </TournamentInfo>
       </TournamentHeader>
 
