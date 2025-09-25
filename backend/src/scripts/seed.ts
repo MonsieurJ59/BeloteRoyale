@@ -17,6 +17,8 @@ async function seed() {
       // Nettoyer toutes les tables (dans l'ordre pour respecter les contraintes de clés étrangères)
       await pool.query("DELETE FROM matches");
       await pool.query("DELETE FROM team_tournament_stats");
+      await pool.query("DELETE FROM team_tournament");
+      await pool.query("DELETE FROM tournament_match_configs");
       await pool.query("DELETE FROM teams");
       await pool.query("DELETE FROM tournaments");
     }
@@ -36,6 +38,20 @@ async function seed() {
         ["Tournoi de Printemps 2023", new Date("2023-04-15"), "in_progress"]
       );
       tournamentId = (tournament as any).insertId;
+      
+      // Créer les configurations de match pour ce tournoi
+      await pool.query(
+        "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+        [tournamentId, 'preliminaires', true, 10]
+      );
+      await pool.query(
+        "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+        [tournamentId, 'principal_1', true, 2]
+      );
+      await pool.query(
+        "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+        [tournamentId, 'principal_2', false, 1]
+      );
     }
 
     // Insérer des équipes
@@ -62,6 +78,31 @@ async function seed() {
       ["Les Valets", "George", "Hugo"]
     );
     const team4Id = (team4 as any).insertId;
+
+    // Vérifier si la table team_tournament existe
+    const [teamTournamentTable] = await pool.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'belote' AND table_name = 'team_tournament'"
+    );
+    
+    // Inscrire les équipes au tournoi
+    if ((teamTournamentTable as any[]).length > 0 && tournamentId !== null) {
+      await pool.query(
+        "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+        [team1Id, tournamentId]
+      );
+      await pool.query(
+        "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+        [team2Id, tournamentId]
+      );
+      await pool.query(
+        "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+        [team3Id, tournamentId]
+      );
+      await pool.query(
+        "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+        [team4Id, tournamentId]
+      );
+    }
 
     // Vérifier si la table team_tournament_stats existe
     const [statsTable] = await pool.query(
@@ -98,12 +139,13 @@ async function seed() {
       
       // Mettre à jour les stats si la table team_tournament_stats existe
       if ((statsTable as any[]).length > 0) {
+        // Pour les matchs préliminaires, on met à jour uniquement les points préliminaires
         await pool.query(
-          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ?, wins = wins + 1 WHERE team_id = ? AND tournament_id = ?",
+          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ? WHERE team_id = ? AND tournament_id = ?",
           [520, team1Id, tournamentId]
         );
         await pool.query(
-          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ?, losses = losses + 1 WHERE team_id = ? AND tournament_id = ?",
+          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ? WHERE team_id = ? AND tournament_id = ?",
           [480, team2Id, tournamentId]
         );
       }
@@ -114,12 +156,13 @@ async function seed() {
       );
       
       if ((statsTable as any[]).length > 0) {
+        // Pour les matchs préliminaires, on met à jour uniquement les points préliminaires
         await pool.query(
-          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ?, wins = wins + 1 WHERE team_id = ? AND tournament_id = ?",
+          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ? WHERE team_id = ? AND tournament_id = ?",
           [460, team4Id, tournamentId]
         );
         await pool.query(
-          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ?, losses = losses + 1 WHERE team_id = ? AND tournament_id = ?",
+          "UPDATE team_tournament_stats SET prelim_points = prelim_points + ? WHERE team_id = ? AND tournament_id = ?",
           [230, team3Id, tournamentId]
         );
       }
@@ -137,11 +180,11 @@ async function seed() {
       
       if ((teamsColumns as any[]).length > 0) {
         await pool.query(
-          "UPDATE teams SET prelim_points = prelim_points + ?, wins = wins + 1 WHERE id = ?",
+          "UPDATE teams SET prelim_points = prelim_points + ? WHERE id = ?",
           [520, team1Id]
         );
         await pool.query(
-          "UPDATE teams SET prelim_points = prelim_points + ?, losses = losses + 1 WHERE id = ?",
+          "UPDATE teams SET prelim_points = prelim_points + ? WHERE id = ?",
           [480, team2Id]
         );
       }
@@ -153,11 +196,11 @@ async function seed() {
       
       if ((teamsColumns as any[]).length > 0) {
         await pool.query(
-          "UPDATE teams SET prelim_points = prelim_points + ?, wins = wins + 1 WHERE id = ?",
+          "UPDATE teams SET prelim_points = prelim_points + ? WHERE id = ?",
           [460, team4Id]
         );
         await pool.query(
-          "UPDATE teams SET prelim_points = prelim_points + ?, losses = losses + 1 WHERE id = ?",
+          "UPDATE teams SET prelim_points = prelim_points + ? WHERE id = ?",
           [230, team3Id]
         );
       }
@@ -172,6 +215,7 @@ async function seed() {
       );
       
       if ((statsTable as any[]).length > 0) {
+        // Pour les matchs principaux, on met à jour uniquement les victoires et défaites
         await pool.query(
           "UPDATE team_tournament_stats SET wins = wins + 1 WHERE team_id = ? AND tournament_id = ?",
           [team1Id, tournamentId]
@@ -196,6 +240,40 @@ async function seed() {
          ["Tournoi d'Été 2023", new Date("2023-07-20"), "upcoming"]
        );
        const tournament2Id = (tournament2 as any).insertId;
+       
+       // Créer les configurations de match pour ce tournoi
+       await pool.query(
+         "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+         [tournament2Id, 'preliminaires', true, 10]
+       );
+       await pool.query(
+         "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+         [tournament2Id, 'principal_1', false, 2]
+       );
+       await pool.query(
+         "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+         [tournament2Id, 'principal_2', false, 1]
+       );
+
+       // Inscrire les équipes au deuxième tournoi
+       if ((teamTournamentTable as any[]).length > 0) {
+         await pool.query(
+           "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+           [team1Id, tournament2Id]
+         );
+         await pool.query(
+           "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+           [team2Id, tournament2Id]
+         );
+         await pool.query(
+           "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+           [team3Id, tournament2Id]
+         );
+         await pool.query(
+           "INSERT INTO team_tournament (team_id, tournament_id) VALUES (?, ?)",
+           [team4Id, tournament2Id]
+         );
+       }
 
        // Ajouter les équipes au deuxième tournoi si la table team_tournament_stats existe
         if ((statsTable as any[]).length > 0) {
