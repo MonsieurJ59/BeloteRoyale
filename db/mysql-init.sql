@@ -13,6 +13,17 @@ CREATE TABLE IF NOT EXISTS tournaments (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table d'association équipes-tournois (inscriptions)
+CREATE TABLE IF NOT EXISTS team_tournament (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  team_id INT NOT NULL,
+  tournament_id INT NOT NULL,
+  registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+  FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_registration (team_id, tournament_id)
+);
+
 CREATE TABLE IF NOT EXISTS team_tournament_stats (
   id INT AUTO_INCREMENT PRIMARY KEY,
   team_id INT NOT NULL,

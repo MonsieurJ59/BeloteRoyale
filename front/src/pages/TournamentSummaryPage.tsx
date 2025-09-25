@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
-import type { Tournament, Team, Match, TeamTournamentStats } from '../types/api';
+import type { Tournament, Team, Match, TeamTournamentStats, TournamentMatchConfig } from '../types/api';
 
 // Interface pour les données de classement
 interface TeamRanking {
@@ -21,6 +21,10 @@ const TournamentSummaryPage: React.FC = () => {
   const [rankings, setRankings] = useState<TeamRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [registeredTeams, setRegisteredTeams] = useState<Team[]>([]);
+  const [matchConfigs, setMatchConfigs] = useState<TournamentMatchConfig[]>([]);
+  const [nextRoundPairs, setNextRoundPairs] = useState<Array<{ teamA: Team; teamB: Team }>>([]);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   // Chargement des données du tournoi
   useEffect(() => {
@@ -31,25 +35,36 @@ const TournamentSummaryPage: React.FC = () => {
         setLoading(true);
         
         // Récupération des données en parallèle
-        const [tournamentRes, teamRankingsRes, matchesRes] = await Promise.all([
+        const [tournamentRes, teamRankingsRes, matchesRes, regsRes, configsRes] = await Promise.all([
           fetch(`http://localhost:4000/tournaments/${id}`),
           fetch(`http://localhost:4000/teams/rankings/tournament/${id}`),
-          fetch(`http://localhost:4000/matches?tournament_id=${id}`)
+          fetch(`http://localhost:4000/matches?tournament_id=${id}`),
+          fetch(`http://localhost:4000/team-tournaments/tournament/${id}/teams`),
+          fetch(`http://localhost:4000/tournament-match-configs/tournament/${id}/configs`)
         ]);
 
         if (!tournamentRes.ok) throw new Error('Tournoi non trouvé');
         if (!teamRankingsRes.ok) throw new Error('Erreur lors du chargement des équipes du tournoi');
         if (!matchesRes.ok) throw new Error('Erreur lors du chargement des matchs');
+        if (!regsRes.ok) throw new Error("Erreur lors du chargement des équipes inscrites");
+        if (!configsRes.ok) throw new Error("Erreur lors du chargement des configurations du tournoi");
 
         const tournamentData = await tournamentRes.json();
         const teamRankingsData = await teamRankingsRes.json();
         const matchesData = await matchesRes.json();
+        const regsData = await regsRes.json();
+        const configsData = await configsRes.json();
 
         setTournament(tournamentData);
         setMatches(matchesData);
+        setRegisteredTeams(regsData);
+        setMatchConfigs(configsData);
 
         // Calcul du classement avec les données déjà filtrées par tournoi
         calculateRankingsFromBackend(teamRankingsData, matchesData);
+
+        // Calculer les suggestions pour la prochaine manche principale si applicable
+        computeNextRoundSuggestions(regsData, matchesData, configsData);
         
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
@@ -151,6 +166,123 @@ const TournamentSummaryPage: React.FC = () => {
     return teamRanking ? teamRanking.team.name : `Équipe #${teamId}`;
   };
 
+  // Déterminer l'étape actuelle et préparer les suggestions
+  const computeNextRoundSuggestions = (
+    teams: Team[],
+    allMatches: Match[],
+    configs: TournamentMatchConfig[]
+  ) => {
+    // Étape 1: vérifier que chaque équipe inscrite a au moins un match préliminaire programmé
+    const prelimByTeamCount = new Map<number, number>();
+    teams.forEach(t => prelimByTeamCount.set(t.id, 0));
+    allMatches
+      .filter(m => m.match_type === 'preliminaires')
+      .forEach(m => {
+        prelimByTeamCount.set(m.team_a_id, (prelimByTeamCount.get(m.team_a_id) || 0) + 1);
+        prelimByTeamCount.set(m.team_b_id, (prelimByTeamCount.get(m.team_b_id) || 0) + 1);
+      });
+
+    const teamsMissingPrelim = teams.filter(t => (prelimByTeamCount.get(t.id) || 0) === 0);
+    if (teamsMissingPrelim.length > 0) {
+      setNextRoundPairs([]);
+      setActionMessage(
+        `Préliminaires en attente: ${teamsMissingPrelim.length} équipe(s) n'ont pas encore de match préliminaire.`
+      );
+      return;
+    }
+
+    // Étape 2: préparer la prochaine manche principale
+    const principalConfig = configs.find(c => c.match_type === 'principal_1' && c.is_enabled);
+    const maxRounds = principalConfig?.max_matches ?? 1;
+
+    // Compter combien de matchs principaux chaque équipe a déjà joués
+    const mainMatches = allMatches.filter(m => m.match_type.startsWith('principal_'));
+    const mainCountByTeam = new Map<number, number>();
+    teams.forEach(t => mainCountByTeam.set(t.id, 0));
+    mainMatches.forEach(m => {
+      mainCountByTeam.set(m.team_a_id, (mainCountByTeam.get(m.team_a_id) || 0) + 1);
+      mainCountByTeam.set(m.team_b_id, (mainCountByTeam.get(m.team_b_id) || 0) + 1);
+    });
+
+    const roundsCompleted = Math.min(...teams.map(t => mainCountByTeam.get(t.id) || 0));
+    if (roundsCompleted >= maxRounds) {
+      setNextRoundPairs([]);
+      setActionMessage('Tous les matchs principaux prévus ont été programmés.');
+      return;
+    }
+
+    // Construire l'historique des affrontements pour éviter les répétitions
+    const facedMap = new Map<number, Set<number>>();
+    teams.forEach(t => facedMap.set(t.id, new Set()));
+    mainMatches.forEach(m => {
+      facedMap.get(m.team_a_id)!.add(m.team_b_id);
+      facedMap.get(m.team_b_id)!.add(m.team_a_id);
+    });
+
+    // Équipes éligibles pour la prochaine manche = celles qui ont joué exactement roundsCompleted matchs principaux
+    const eligible = teams.filter(t => (mainCountByTeam.get(t.id) || 0) === roundsCompleted);
+
+    // Algorithme glouton: apparier en minimisant les répétitions
+    const pairs: Array<{ teamA: Team; teamB: Team }> = [];
+    const used = new Set<number>();
+    const sorted = [...eligible].sort((a, b) => (facedMap.get(a.id)!.size - facedMap.get(b.id)!.size));
+
+    for (const team of sorted) {
+      if (used.has(team.id)) continue;
+      // Chercher des adversaires non utilisés avec lesquels il n'a jamais joué
+      let opponent = eligible.find(t => !used.has(t.id) && t.id !== team.id && !facedMap.get(team.id)!.has(t.id));
+      // Si pas trouvé, accepter un adversaire déjà affronté le moins souvent (fallback)
+      if (!opponent) {
+        opponent = eligible.find(t => !used.has(t.id) && t.id !== team.id);
+      }
+      if (opponent) {
+        pairs.push({ teamA: team, teamB: opponent });
+        used.add(team.id);
+        used.add(opponent.id);
+      }
+    }
+
+    setNextRoundPairs(pairs);
+    setActionMessage(
+      pairs.length > 0
+        ? `Prochaine manche principale (#${roundsCompleted + 1}/${maxRounds}) — ${pairs.length} match(s) suggéré(s).`
+        : 'Aucune paire suggérée (nombre d\'équipes impair ?).'
+    );
+  };
+
+  const createSuggestedMainMatches = async () => {
+    if (!id) return;
+    try {
+      const created = await Promise.all(
+        nextRoundPairs.map(p =>
+          fetch(`http://localhost:4000/matches`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tournament_id: Number(id),
+              match_type: 'principal_1',
+              team_a_id: p.teamA.id,
+              team_b_id: p.teamB.id
+            })
+          })
+        )
+      );
+      const allOk = created.every(r => r.ok);
+      if (!allOk) throw new Error('Une erreur est survenue lors de la création des matchs');
+      // Recharger la page de résumé
+      setActionMessage('Matchs créés avec succès. Actualisation...');
+      // Re-fetch matches and recompute
+      const matchesRes = await fetch(`http://localhost:4000/matches?tournament_id=${id}`);
+      if (matchesRes.ok) {
+        const matchesData = await matchesRes.json();
+        setMatches(matchesData);
+        computeNextRoundSuggestions(registeredTeams, matchesData, matchConfigs);
+      }
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : 'Erreur lors de la création des matchs');
+    }
+  };
+
   // Fonction pour formater la date
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -210,6 +342,26 @@ const TournamentSummaryPage: React.FC = () => {
           </InfoItem>
         </TournamentInfo>
       </TournamentHeader>
+
+      {/* Étape actuelle et actions */}
+      <ActionsSection>
+        <SectionTitle>Étape du tournoi</SectionTitle>
+        <ActionMessage>{actionMessage || 'Analyse en cours...'}</ActionMessage>
+        {nextRoundPairs.length > 0 && (
+          <div>
+            <SuggestedList>
+              {nextRoundPairs.map((p, idx) => (
+                <li key={`${p.teamA.id}-${p.teamB.id}-${idx}`}>
+                  {p.teamA.name} vs {p.teamB.name}
+                </li>
+              ))}
+            </SuggestedList>
+            <CreateMatchesButton onClick={createSuggestedMainMatches}>
+              Créer ces matchs
+            </CreateMatchesButton>
+          </div>
+        )}
+      </ActionsSection>
 
       {/* Statistiques du tournoi */}
       <StatsSection>
@@ -422,6 +574,58 @@ const StatusBadge = styled.span<{ $status: Tournament['status'] }>`
 
 const StatsSection = styled.section`
   margin-bottom: ${theme.spacing.xxl};
+`;
+
+// Actions and suggestions styles
+const ActionsSection = styled.section`
+  margin-bottom: ${theme.spacing.xxl};
+  background: ${theme.colors.background.card};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border.light};
+  box-shadow: ${theme.shadows.sm};
+  padding: ${theme.spacing.xl};
+`;
+
+const ActionMessage = styled.p`
+  text-align: center;
+  color: ${theme.colors.text.primary};
+  margin-bottom: ${theme.spacing.md};
+`;
+
+const SuggestedList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 ${theme.spacing.lg};
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: ${theme.spacing.sm};
+
+  li {
+    background: ${theme.colors.neutral.gray50};
+    border: 1px solid ${theme.colors.border.light};
+    border-radius: ${theme.borderRadius.md};
+    padding: ${theme.spacing.md};
+    text-align: center;
+  }
+`;
+
+const CreateMatchesButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${theme.spacing.sm} ${theme.spacing.lg};
+  background-color: ${theme.colors.primary.main};
+  color: ${theme.colors.text.light};
+  border: none;
+  border-radius: ${theme.borderRadius.md};
+  font-weight: ${theme.typography.fontWeight.medium};
+  transition: all ${theme.transitions.fast};
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${theme.colors.primary.light};
+    transform: translateY(-1px);
+  }
 `;
 
 const SectionTitle = styled.h2`
