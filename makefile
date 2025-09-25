@@ -31,8 +31,7 @@ rebuild:
 
 # Réinitialiser la base de données
 db-reset:
-	docker-compose exec db psql -U postgres -d belote -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-	docker-compose exec db psql -U postgres -d belote -f /docker-entrypoint-initdb.d/init.sql
+
 
 # Accéder au shell d'un service
 shell-%:

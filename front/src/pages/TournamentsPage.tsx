@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'; // Composant de navigation
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
 import TournamentModal from '../components/TournamentModal'; // Modal pour créer/modifier un tournoi
-import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 import { theme } from '../styles/theme'; // Thème avec couleurs modernes
+import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 
 // Composant principal de la page des tournois
 const TournamentsPage: React.FC = () => {
@@ -69,7 +69,7 @@ const TournamentsPage: React.FC = () => {
     setSelectedTournament(null);
   };
 
-  const handleSubmitTournament = async (tournamentData: Omit<Tournament, 'id' | 'created_at'>) => {
+  const handleSubmitTournament = async (tournamentData: Omit<Tournament, 'id' | 'created_at'> & { match_configs?: any[]; selected_team_ids?: number[] }) => {
     try {
       if (modalMode === 'create') {
         await createTournament(tournamentData);

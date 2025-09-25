@@ -112,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed: controlledCollapsed }) =
         <SidebarFooter $isCollapsed={isCollapsed}>
           {!isCollapsed && (
             <FooterText>
-              © 2024 Belote Royale
+              © 2025 Belote Royale
             </FooterText>
           )}
         </SidebarFooter>

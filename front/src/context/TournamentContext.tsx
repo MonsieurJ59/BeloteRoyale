@@ -3,6 +3,12 @@ import { createContext, useState, useEffect } from 'react'; // Modules React de 
 import type { ReactNode } from 'react'; // Type ReactNode
 import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 
+// Payload étendue pour la création d'un tournoi (avec configs et équipes sélectionnées)
+type CreateTournamentPayload = Omit<Tournament, 'id' | 'created_at'> & {
+  match_configs?: any[];
+  selected_team_ids?: number[];
+};
+
 // Interface définissant la structure du contexte des tournois
 // Cette interface définit ce que les composants pourront utiliser via useContext
 interface TournamentContextType {
@@ -10,7 +16,7 @@ interface TournamentContextType {
   loading: boolean; // Indicateur de chargement
   error: string | null; // Message d'erreur éventuel
   fetchTournaments: () => Promise<void>; // Fonction pour récupérer les tournois
-  createTournament: (tournament: Omit<Tournament, 'id' | 'created_at'>) => Promise<Tournament>;
+  createTournament: (tournament: CreateTournamentPayload) => Promise<Tournament>;
   updateTournament: (id: number, tournament: Partial<Omit<Tournament, 'id' | 'created_at'>>) => Promise<Tournament>;
   deleteTournament: (id: number) => Promise<void>;
 }
@@ -78,7 +84,7 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
   }, []); // Tableau de dépendances vide = exécution uniquement au montage
 
   // Fonction pour créer un nouveau tournoi
-  const createTournament = async (tournamentData: Omit<Tournament, 'id' | 'created_at'>): Promise<Tournament> => {
+  const createTournament = async (tournamentData: CreateTournamentPayload): Promise<Tournament> => {
     try {
       // Formater la date au format YYYY-MM-DD pour MySQL
       const formattedData = {
@@ -108,6 +114,24 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       };
       
       setTournaments(prev => [formattedTournament, ...prev]);
+
+      // Inscription des équipes sélectionnées (si fournies)
+      if (tournamentData.selected_team_ids && tournamentData.selected_team_ids.length > 0) {
+        try {
+          await Promise.all(
+            tournamentData.selected_team_ids.map(teamId =>
+              fetch(`${import.meta.env.VITE_API_URL}/team-tournaments/tournament/${formattedTournament.id}/teams`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ team_id: teamId })
+              })
+            )
+          );
+        } catch (err) {
+          console.error('Erreur lors de l\'inscription des équipes:', err);
+          // On ne bloque pas la création du tournoi si l'inscription échoue pour certaines équipes
+        }
+      }
       return formattedTournament;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du tournoi';

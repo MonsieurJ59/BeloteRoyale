@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
-import type { Tournament } from '../types/api';
+import type { Tournament, Team } from '../types/api';
 
 interface TournamentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (tournament: Omit<Tournament, 'id' | 'created_at'> & { match_configs?: any[] }) => void;
+  onSubmit: (tournament: Omit<Tournament, 'id' | 'created_at'> & { match_configs?: any[], selected_team_ids?: number[] }) => void;
   tournament?: Tournament | null;
   mode: 'create' | 'edit';
 }
@@ -24,6 +24,12 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
     status: 'upcoming' as Tournament['status'],
     maxPrincipalMatches: 5
   });
+
+  // Teams selection state (for create mode)
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<number[]>([]);
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -44,7 +50,29 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
       });
     }
     setErrors({});
+    // Reset teams selection when modal opens or mode changes
+    setSelectedTeamIds([]);
   }, [tournament, mode, isOpen]);
+
+  // Load teams when creating a tournament and modal is open
+  useEffect(() => {
+    const fetchTeams = async () => {
+      if (!isOpen || mode !== 'create') return;
+      try {
+        setTeamsLoading(true);
+        setTeamsError(null);
+        const resp = await fetch(`${import.meta.env.VITE_API_URL}/teams`);
+        if (!resp.ok) throw new Error('Erreur lors du chargement des équipes');
+        const data = await resp.json();
+        setTeams(data);
+      } catch (e) {
+        setTeamsError(e instanceof Error ? e.message : 'Erreur inconnue');
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+    fetchTeams();
+  }, [isOpen, mode]);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -81,11 +109,16 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
       name: formData.name.trim(),
       date: new Date(formData.date),
       status: formData.status,
-      match_configs: mode === 'create' ? matchConfigs : undefined
+      match_configs: mode === 'create' ? matchConfigs : undefined,
+      selected_team_ids: mode === 'create' ? selectedTeamIds : undefined
     };
     
     onSubmit(tournamentData);
     onClose();
+  };
+
+  const toggleTeam = (teamId: number) => {
+    setSelectedTeamIds(prev => prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -168,6 +201,35 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
               />
               {errors.maxPrincipalMatches && <ErrorText>{errors.maxPrincipalMatches}</ErrorText>}
               <HelpText>Définit le nombre maximum de matchs dans la phase principale du tournoi</HelpText>
+            </FormGroup>
+          )}
+
+          {mode === 'create' && (
+            <FormGroup>
+              <Label>Équipes participantes</Label>
+              {teamsLoading ? (
+                <HelpText>Chargement des équipes...</HelpText>
+              ) : teamsError ? (
+                <ErrorText>{teamsError}</ErrorText>
+              ) : teams.length === 0 ? (
+                <HelpText>Aucune équipe disponible. Créez des équipes avant de créer un tournoi.</HelpText>
+              ) : (
+                <TeamList>
+                  {teams.map(team => (
+                    <TeamItem key={team.id}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selectedTeamIds.includes(team.id)}
+                          onChange={() => toggleTeam(team.id)}
+                        />
+                        <span>{team.name} — {team.player1} & {team.player2}</span>
+                      </label>
+                    </TeamItem>
+                  ))}
+                </TeamList>
+              )}
+              <HelpText>Sélectionnez les équipes qui participeront à ce tournoi.</HelpText>
             </FormGroup>
           )}
 
@@ -352,6 +414,41 @@ const SubmitButton = styled(Button)`
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+  }
+`;
+
+// Teams list styles
+const TeamList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid ${theme.colors.border.light};
+  border-radius: ${theme.borderRadius.md};
+  background-color: ${theme.colors.background.primary};
+`;
+
+const TeamItem = styled.li`
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  border-bottom: 1px solid ${theme.colors.border.light};
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing.sm};
+    cursor: pointer;
+    color: ${theme.colors.text.primary};
+  }
+
+  input[type="checkbox"] {
+    accent-color: ${theme.colors.primary.main};
+    width: 16px;
+    height: 16px;
   }
 `;
 
