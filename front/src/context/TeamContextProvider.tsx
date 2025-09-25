@@ -1,9 +1,9 @@
 // Importation des modules nécessaires
-import React, { useState, useEffect } from 'react'; // Modules React de base
+import { useState, useEffect } from 'react'; // Modules React de base
 import type { ReactNode } from 'react'; // Type ReactNode importé séparément avec le mot-clé type
-import type { Team } from '../types/types'; // Type Team défini dans notre application
+import type { Team } from '../types/api'; // Type Team importé depuis le backend
 import { API_URL } from '../config'; // URL de l'API depuis la configuration
-import { TeamContext, type TeamContextType } from './TeamContext'; // Import du contexte et du type depuis le fichier séparé
+import { TeamContext } from './TeamContext'; // Import du contexte depuis le fichier séparé
 
 // Interface pour les props du Provider
 interface TeamProviderProps {

@@ -1,8 +1,8 @@
 // Importation des modules nécessaires
-import React, { useState, useContext } from 'react'; // Hooks React de base
+import { useState, useContext } from 'react'; // Hooks React de base
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TeamContext } from '../context/TeamContext'; // Contexte pour la gestion des équipes
-import type { Team } from '../types/types';
+import type { Team } from '../types/api';
 import { theme } from '../styles/theme'; // Thème avec couleurs modernes
 
 // Composant principal de la page des équipes

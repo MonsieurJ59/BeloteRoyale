@@ -1,10 +1,10 @@
 // Importation des modules nécessaires
-import React, { useState, useContext, useMemo } from 'react'; // Hooks React de base
+import { useState, useContext, useMemo } from 'react'; // Hooks React de base
 import { Link } from 'react-router-dom'; // Composant de navigation
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
 import TournamentModal from '../components/TournamentModal'; // Modal pour créer/modifier un tournoi
-import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 import { theme } from '../styles/theme'; // Thème avec couleurs modernes
 
 // Composant principal de la page des tournois

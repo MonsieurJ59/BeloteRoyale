@@ -33,6 +33,7 @@ export interface Team {
   name: string;
   player1: string;
   player2: string;
+  created_at: Date;
 }
 
 export interface CreateTeamDto {
@@ -61,6 +62,7 @@ export interface Match {
   score_b: number;
   winner_id: number | null;
   match_order?: number; // pour ordonner les matchs
+  created_at: Date;
 }
 
 export interface CreateMatchDto {

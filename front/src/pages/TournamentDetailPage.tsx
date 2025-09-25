@@ -8,8 +8,8 @@ import styled from 'styled-components';
 import { TournamentContext } from '../context/TournamentContext';
 import { MatchContext } from '../context/MatchContext';
 import { TeamContext } from '../context/TeamContext';
-// Importation des types TypeScript
-import type { Match, Tournament, TeamTournamentStats } from '../types/types';
+// Importation des types TypeScript depuis le backend
+import type { Match, Tournament, TeamTournamentStats } from '../types/api';
 
 const PageContainer = styled.div`
   max-width: 1200px;

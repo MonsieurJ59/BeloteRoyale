@@ -1,6 +1,7 @@
 // Importation des modules nécessaires
-import React, { createContext, useState, useEffect, ReactNode } from 'react'; // Modules React de base
-import type { Match } from '../types/types'; // Type Match défini dans notre application
+import { createContext, useState, useEffect } from 'react'; // Modules React de base
+import type { ReactNode } from 'react'; // Type ReactNode
+import type { Match } from '../types/api'; // Type Match importé depuis le backend
 import { API_URL } from '../config'; // URL de l'API depuis la configuration
 
 // Interface définissant la structure du contexte des matchs

@@ -1,11 +1,11 @@
 // Importation des modules nécessaires
-import React, { useContext, useMemo } from 'react'; // Hooks React de base
+import { useContext, useMemo } from 'react'; // Hooks React de base
 import { Link } from 'react-router-dom'; // Composant de navigation
 import styled from 'styled-components'; // Bibliothèque de styling
 import { TournamentContext } from '../context/TournamentContext'; // Contexte pour la gestion des tournois
 import { TeamContext } from '../context/TeamContext'; // Contexte pour la gestion des équipes
 import { MatchContext } from '../context/MatchContext'; // Contexte pour la gestion des matchs
-import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 import { theme } from '../styles/theme'; // Thème avec couleurs modernes
 
 // Composant principal de la page d'accueil

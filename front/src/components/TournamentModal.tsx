@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
-import type { Tournament } from '../types/types';
+import type { Tournament } from '../types/api';
 
 interface TournamentModalProps {
   isOpen: boolean;
@@ -73,16 +73,19 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
     }
 
     const matchConfigs = [
-      { tournament_id: 0, match_type: 'preliminaires', is_enabled: true, max_matches: 10 },
-      { tournament_id: 0, match_type: 'principal_1', is_enabled: true, max_matches: formData.maxPrincipalMatches }
+      { id: 0, tournament_id: 0, match_type: 'preliminaires' as const, is_enabled: true, max_matches: 10 },
+      { id: 0, tournament_id: 0, match_type: 'principal_1' as const, is_enabled: true, max_matches: formData.maxPrincipalMatches }
     ];
 
-    onSubmit({
+    const tournamentData = {
       name: formData.name.trim(),
       date: new Date(formData.date),
       status: formData.status,
       match_configs: mode === 'create' ? matchConfigs : undefined
-    });
+    };
+    
+    onSubmit(tournamentData);
+    onClose();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

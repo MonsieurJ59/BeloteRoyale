@@ -1,6 +1,6 @@
 // Importation des modules nécessaires
 import { createContext } from 'react'; // Importation de createContext uniquement
-import type { Team } from '../types/types'; // Type Team défini dans notre application
+import type { Team } from '../types/api'; // Type Team importé depuis le backend
 
 // Interface définissant la structure du contexte des équipes
 // Cette interface définit ce que les composants pourront utiliser via useContext

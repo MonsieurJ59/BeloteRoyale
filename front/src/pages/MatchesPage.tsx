@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { MatchContext } from '../context/MatchContext';
 import { TeamContext } from '../context/TeamContext';
 import { TournamentContext } from '../context/TournamentContext';
-import type { Match, Tournament } from '../types/types';
+import type { Match, Tournament } from '../types/api';
 import { theme } from '../styles/theme';
 
 const PageContainer = styled.div`

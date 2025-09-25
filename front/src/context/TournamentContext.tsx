@@ -1,6 +1,7 @@
 // Importation des modules nécessaires
-import React, { createContext, useState, useEffect, type ReactNode } from 'react'; // Modules React de base
-import type { Tournament } from '../types/types'; // Type Tournament défini dans notre application
+import { createContext, useState, useEffect } from 'react'; // Modules React de base
+import type { ReactNode } from 'react'; // Type ReactNode
+import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 
 // Interface définissant la structure du contexte des tournois
 // Cette interface définit ce que les composants pourront utiliser via useContext

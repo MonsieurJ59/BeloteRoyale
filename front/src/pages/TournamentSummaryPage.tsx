@@ -1,9 +1,9 @@
 // Importation des modules nécessaires
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
-import type { Tournament, Team, Match, TeamTournamentStats } from '../types/types';
+import type { Tournament, Team, Match, TeamTournamentStats } from '../types/api';
 
 // Interface pour les données de classement
 interface TeamRanking {
@@ -69,8 +69,7 @@ const TournamentSummaryPage: React.FC = () => {
         id: teamData.id,
         name: teamData.name,
         player1: teamData.player1,
-        player2: teamData.player2,
-        created_at: new Date() // Date par défaut, non critique pour l'affichage
+        player2: teamData.player2
       };
 
       // Reconstitution des stats à partir des données du backend
