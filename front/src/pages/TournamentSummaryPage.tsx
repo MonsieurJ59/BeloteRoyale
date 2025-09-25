@@ -84,7 +84,7 @@ const TournamentSummaryPage: React.FC = () => {
 
   // Fonction pour calculer le classement avec les données du backend déjà filtrées
   const calculateRankingsFromBackend = (teamRankingsData: any[], matchesData: Match[]) => {
-    const teamRankings: TeamRanking[] = teamRankingsData.map((teamData, index) => {
+    const teamRankings: TeamRanking[] = teamRankingsData.map((teamData) => {
       // Reconstitution de l'objet Team à partir des données du backend
       const team: Team = {
         id: teamData.id,
@@ -93,36 +93,71 @@ const TournamentSummaryPage: React.FC = () => {
         player2: teamData.player2
       };
 
-      // Reconstitution des stats à partir des données du backend
-      const stats: TeamTournamentStats = {
-        id: 0, // Non utilisé dans l'affichage
-        team_id: teamData.id,
-        tournament_id: parseInt(id!),
-        wins: teamData.wins || 0,
-        losses: teamData.losses || 0,
-        prelim_points: teamData.prelim_points || 0
-      };
+      // Calcul des statistiques à jour
+      let wins = 0;
+      let losses = 0;
+      let prelimScore = 0;
 
-      // Calcul du score préliminaire total pour cette équipe
+      // Calcul du score préliminaire pour cette équipe
       const prelimMatches = matchesData.filter(match => 
         match.match_type === 'preliminaires' && 
         (match.team_a_id === team.id || match.team_b_id === team.id)
       );
       
-      const prelimScore = prelimMatches.reduce((total, match) => {
+      prelimMatches.forEach(match => {
         if (match.team_a_id === team.id) {
-          return total + (match.score_a || 0);
+          prelimScore += (match.score_a || 0);
         } else {
-          return total + (match.score_b || 0);
+          prelimScore += (match.score_b || 0);
         }
-      }, 0);
+      });
+      
+      // Calcul des victoires et défaites uniquement pour les matchs principaux
+      const mainMatches = matchesData.filter(match => 
+        match.match_type.startsWith('principal_') && 
+        (match.team_a_id === team.id || match.team_b_id === team.id) &&
+        match.winner_id !== null
+      );
+      
+      mainMatches.forEach(match => {
+        if (match.winner_id === team.id) {
+          wins++;
+        } else {
+          losses++;
+        }
+      });
+
+      // Reconstitution des stats à partir des calculs
+      const stats: TeamTournamentStats = {
+        id: 0, // Non utilisé dans l'affichage
+        team_id: teamData.id,
+        tournament_id: parseInt(id!),
+        wins: wins,
+        losses: losses,
+        prelim_points: prelimScore
+      };
 
       return {
         team,
         stats,
         prelimScore,
-        rank: index + 1 // Les données du backend sont déjà triées
+        rank: 0 // Sera calculé après le tri
       };
+    });
+
+    // Tri des équipes selon les critères de classement
+    teamRankings.sort((a, b) => {
+      // D'abord par nombre de victoires
+      if (a.stats.wins !== b.stats.wins) return b.stats.wins - a.stats.wins;
+      // Ensuite par points préliminaires
+      if (a.prelimScore !== b.prelimScore) return b.prelimScore - a.prelimScore;
+      // Enfin par nombre de défaites (moins de défaites est mieux)
+      return a.stats.losses - b.stats.losses;
+    });
+
+    // Attribution des rangs après le tri
+    teamRankings.forEach((ranking, index) => {
+      ranking.rank = index + 1;
     });
 
     setRankings(teamRankings);
@@ -289,36 +324,67 @@ const TournamentSummaryPage: React.FC = () => {
     );
   };
 
+  // Créer les matchs suggérés via l'API
   const createSuggestedMainMatches = async () => {
-    if (!id) return;
+    if (!id || nextRoundPairs.length === 0) return;
+    
     try {
-      const created = await Promise.all(
-        nextRoundPairs.map(p =>
-          fetch(`http://localhost:4000/matches`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tournament_id: Number(id),
-              match_type: 'principal_1',
-              team_a_id: p.teamA.id,
-              team_b_id: p.teamB.id
-            })
+      setLoading(true);
+      
+      // Déterminer le type de match à créer
+      let matchType = 'preliminaires';
+      
+      // Si des matchs préliminaires existent déjà et sont tous terminés, créer des matchs principaux
+      const prelimMatches = matches.filter(m => m.match_type === 'preliminaires');
+      const allPrelimsCompleted = prelimMatches.length > 0 && 
+                                 prelimMatches.every(m => m.winner_id !== null);
+      
+      if (allPrelimsCompleted) {
+        // Trouver la prochaine manche principale
+        const mainRounds = [...new Set(matches
+          .filter(m => m.match_type.startsWith('principal_'))
+          .map(m => parseInt(m.match_type.replace('principal_', ''))))]; 
+        
+        const nextRound = mainRounds.length > 0 ? Math.max(...mainRounds) + 1 : 1;
+        matchType = `principal_${nextRound}`;
+      }
+      
+      // Créer les matchs un par un
+      for (const pair of nextRoundPairs) {
+        const response = await fetch(`http://localhost:4000/matches`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tournament_id: Number(id),
+            match_type: matchType,
+            team_a_id: pair.teamA.id,
+            team_b_id: pair.teamB.id,
+            score_a: 0,
+            score_b: 0,
+            winner_id: null
           })
-        )
-      );
-      const allOk = created.every(r => r.ok);
-      if (!allOk) throw new Error('Une erreur est survenue lors de la création des matchs');
-      // Recharger la page de résumé
-      setActionMessage('Matchs créés avec succès. Actualisation...');
-      // Re-fetch matches and recompute
+        });
+        
+        if (!response.ok) throw new Error(`Erreur lors de la création du match ${pair.teamA.name} vs ${pair.teamB.name}`);
+      }
+      
+      // Recharger les matchs
       const matchesRes = await fetch(`http://localhost:4000/matches?tournament_id=${id}`);
       if (matchesRes.ok) {
         const matchesData = await matchesRes.json();
         setMatches(matchesData);
+        // Recalculer le classement avec les nouveaux matchs
+        calculateRankingsFromBackend(registeredTeams, matchesData);
         computeNextRoundSuggestions(registeredTeams, matchesData, matchConfigs);
       }
+      
+      // Réinitialiser les paires
+      setNextRoundPairs([]);
+      setActionMessage(`${nextRoundPairs.length} match(s) créé(s) avec succès.`);
     } catch (e) {
       setActionMessage(e instanceof Error ? e.message : 'Erreur lors de la création des matchs');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -460,21 +526,176 @@ const TournamentSummaryPage: React.FC = () => {
       {/* Étape actuelle et actions */}
       <ActionsSection>
         <SectionTitle>Étape du tournoi</SectionTitle>
-        <ActionMessage>{actionMessage || 'Analyse en cours...'}</ActionMessage>
         
+        {/* Affichage de l'étape actuelle du tournoi */}
         {tournament?.status === 'upcoming' && (
-          <StartTournamentButton onClick={validateTournamentStage}>
-            Démarrer le tournoi
-          </StartTournamentButton>
+          <>
+            <ActionMessage>Le tournoi n'a pas encore commencé. Cliquez sur "Démarrer le tournoi" pour commencer.</ActionMessage>
+            <StartTournamentButton onClick={validateTournamentStage}>
+              Démarrer le tournoi
+            </StartTournamentButton>
+          </>
         )}
         
-        {tournament?.status === 'in_progress' && completedMatches === totalMatches && totalMatches > 0 && (
-          <CompleteTournamentButton onClick={validateTournamentStage}>
-            Terminer le tournoi
-          </CompleteTournamentButton>
+        {tournament?.status === 'in_progress' && (
+          <>
+            {/* Étape des préliminaires */}
+            {prelimMatches === 0 && (
+              <>
+                <ActionMessage>Étape des préliminaires : Aucun match préliminaire n'a été créé.</ActionMessage>
+                <ButtonGroup>
+                  <CreateMatchesButton onClick={() => {
+                    if (registeredTeams && registeredTeams.length >= 2) {
+                      // Créer des paires pour les préliminaires
+                      const prelimPairs: Array<{ teamA: Team; teamB: Team }> = [];
+                      const used = new Set<number>();
+                      
+                      for (let i = 0; i < registeredTeams.length; i++) {
+                        const team = registeredTeams[i];
+                        if (used.has(team.id)) continue;
+                        
+                        // Chercher un adversaire qui n'est pas encore utilisé
+                        const opponent = registeredTeams.find(t => !used.has(t.id) && t.id !== team.id);
+                        
+                        if (opponent) {
+                          prelimPairs.push({ teamA: team, teamB: opponent });
+                          used.add(team.id);
+                          used.add(opponent.id);
+                        }
+                      }
+                      
+                      setNextRoundPairs(prelimPairs);
+                      setCustomPairs([...prelimPairs]);
+                      setIsEditingPairs(true);
+                      setActionMessage(`Préliminaires : ${prelimPairs.length} paire(s) proposée(s).`);
+                    } else {
+                      setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
+                    }
+                  }}>
+                    Proposer les affrontements préliminaires
+                  </CreateMatchesButton>
+                </ButtonGroup>
+              </>
+            )}
+            
+            {/* Préliminaires en cours */}
+            {prelimMatches > 0 && matches.filter(m => m.match_type === 'preliminaires' && m.winner_id === null).length > 0 && (
+              <ActionMessage>
+                Étape des préliminaires en cours : {matches.filter(m => m.match_type === 'preliminaires' && m.winner_id === null).length} match(s) en attente de résultat.
+              </ActionMessage>
+            )}
+            
+            {/* Préliminaires terminés, passage aux matchs principaux */}
+            {prelimMatches > 0 && matches.filter(m => m.match_type === 'preliminaires' && m.winner_id === null).length === 0 && (
+              <>
+                {/* Déterminer la manche principale actuelle */}
+                {(() => {
+                  // Trouver la manche principale actuelle
+                  const mainRounds = [...new Set(matches
+                    .filter(m => m.match_type.startsWith('principal_'))
+                    .map(m => parseInt(m.match_type.replace('principal_', ''))))];
+                  
+                  const currentRound = mainRounds.length > 0 ? Math.max(...mainRounds) : 0;
+                  const nextRound = currentRound + 1;
+                  
+                  // Vérifier si tous les matchs de la manche actuelle sont terminés
+                  const currentRoundMatches = matches.filter(m => m.match_type === `principal_${currentRound}`);
+                  const pendingCurrentRound = currentRoundMatches.filter(m => m.winner_id === null);
+                  
+                  // Vérifier si on a atteint le nombre maximum de manches
+                  const principalConfig = matchConfigs.find(c => c.match_type === 'principal_1' && c.is_enabled);
+                  const maxRounds = principalConfig?.max_matches ?? 1;
+                  
+                  if (currentRound >= maxRounds) {
+                    return (
+                      <>
+                        <ActionMessage>Toutes les manches principales ont été jouées. Vous pouvez terminer le tournoi.</ActionMessage>
+                        <CompleteTournamentButton onClick={validateTournamentStage}>
+                          Terminer le tournoi
+                        </CompleteTournamentButton>
+                      </>
+                    );
+                  } else if (pendingCurrentRound.length > 0) {
+                    return (
+                      <ActionMessage>
+                        Manche principale {currentRound} en cours : {pendingCurrentRound.length} match(s) en attente de résultat.
+                      </ActionMessage>
+                    );
+                  } else {
+                    return (
+                      <>
+                        <ActionMessage>
+                          {currentRound === 0 
+                            ? "Les préliminaires sont terminés. Vous pouvez maintenant créer les matchs de la première manche principale." 
+                            : `Manche principale ${currentRound} terminée. Vous pouvez maintenant créer les matchs de la manche ${nextRound}.`}
+                        </ActionMessage>
+                        <ButtonGroup>
+                          <CreateMatchesButton onClick={() => {
+                            if (registeredTeams && registeredTeams.length >= 2) {
+                              // Construire l'historique des affrontements pour éviter les répétitions
+                              const facedMap = new Map<number, Set<number>>();
+                              registeredTeams.forEach(t => facedMap.set(t.id, new Set()));
+                              
+                              matches.filter(m => m.match_type.startsWith('principal_')).forEach(m => {
+                                facedMap.get(m.team_a_id)?.add(m.team_b_id);
+                                facedMap.get(m.team_b_id)?.add(m.team_a_id);
+                              });
+                              
+                              // Algorithme glouton: apparier en minimisant les répétitions
+                              const pairs: Array<{ teamA: Team; teamB: Team }> = [];
+                              const used = new Set<number>();
+                              const sorted = [...registeredTeams].sort((a, b) => 
+                                (facedMap.get(a.id)?.size || 0) - (facedMap.get(b.id)?.size || 0)
+                              );
+                              
+                              for (const team of sorted) {
+                                if (used.has(team.id)) continue;
+                                
+                                // Chercher des adversaires non utilisés avec lesquels il n'a jamais joué
+                                let opponent = registeredTeams.find(t => 
+                                  !used.has(t.id) && 
+                                  t.id !== team.id && 
+                                  !(facedMap.get(team.id)?.has(t.id))
+                                );
+                                
+                                // Si pas trouvé, accepter un adversaire déjà affronté
+                                if (!opponent) {
+                                  opponent = registeredTeams.find(t => !used.has(t.id) && t.id !== team.id);
+                                }
+                                
+                                if (opponent) {
+                                  pairs.push({ teamA: team, teamB: opponent });
+                                  used.add(team.id);
+                                  used.add(opponent.id);
+                                }
+                              }
+                              
+                              setNextRoundPairs(pairs);
+                              setCustomPairs([...pairs]);
+                              setIsEditingPairs(true);
+                              setActionMessage(`Manche principale ${nextRound} : ${pairs.length} paire(s) proposée(s).`);
+                            } else {
+                              setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
+                            }
+                          }}>
+                            Proposer les affrontements de la manche {nextRound}
+                          </CreateMatchesButton>
+                        </ButtonGroup>
+                      </>
+                    );
+                  }
+                })()}
+              </>
+            )}
+          </>
         )}
         
-        {isEditingPairs ? (
+        {tournament?.status === 'completed' && (
+          <ActionMessage>Le tournoi est terminé. Tous les matchs ont été joués.</ActionMessage>
+        )}
+        
+        {/* Affichage des paires proposées */}
+        {isEditingPairs && (
           <div>
             <SuggestedList>
               {customPairs.map((p, idx) => (
@@ -496,48 +717,6 @@ const TournamentSummaryPage: React.FC = () => {
               </CancelButton>
             </ButtonGroup>
           </div>
-        ) : nextRoundPairs.length > 0 ? (
-          <div>
-            <SuggestedList>
-              {nextRoundPairs.map((p, idx) => (
-                <li key={`${p.teamA.id}-${p.teamB.id}-${idx}`}>
-                  {p.teamA.name} vs {p.teamB.name}
-                </li>
-              ))}
-            </SuggestedList>
-            <ButtonGroup>
-              <CreateMatchesButton onClick={createSuggestedMainMatches}>
-                Créer ces matchs
-              </CreateMatchesButton>
-              <EditPairsButton onClick={togglePairsEditing}>
-                Modifier les paires
-              </EditPairsButton>
-            </ButtonGroup>
-          </div>
-        ) : (
-          tournament?.status === 'in_progress' && (
-            <ButtonGroup>
-              <CreateMatchesButton onClick={() => {
-                // Vérifier s'il reste des matchs préliminaires à jouer
-                const prelimMatches = matches.filter(m => m.match_type === 'preliminaires');
-                const pendingPrelims = prelimMatches.filter(m => m.winner_id === null);
-                
-                if (pendingPrelims.length > 0) {
-                  setActionMessage(`Il reste ${pendingPrelims.length} match(s) préliminaire(s) à compléter avant de passer à l'étape suivante.`);
-                  return;
-                }
-                
-                // Si tous les préliminaires sont terminés, proposer des affrontements pour la phase principale
-                if (registeredTeams && registeredTeams.length >= 2) {
-                  computeNextRoundSuggestions(registeredTeams, matches, matchConfigs);
-                } else {
-                  setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
-                }
-              }}>
-                Proposer des affrontements
-              </CreateMatchesButton>
-            </ButtonGroup>
-          )
         )}
       </ActionsSection>
 
