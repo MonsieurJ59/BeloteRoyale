@@ -40,6 +40,22 @@ router.post("/", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Name is required" });
     if (!date) return res.status(400).json({ error: "Date is required" });
     
+    // Validate configs if provided: require at least one enabled preliminaires and one enabled principal_1 with max_matches >= 1
+    if (match_configs && Array.isArray(match_configs)) {
+      const prelim = match_configs.find(c => c.match_type === 'preliminaires' && c.is_enabled);
+      const principal1 = match_configs.find(c => c.match_type === 'principal_1' && c.is_enabled);
+
+      if (!prelim) {
+        return res.status(400).json({ error: "A tournament must have an enabled 'preliminaires' config" });
+      }
+      if (!principal1) {
+        return res.status(400).json({ error: "A tournament must have an enabled 'principal_1' config" });
+      }
+      if (principal1.max_matches !== undefined && principal1.max_matches !== null && principal1.max_matches < 1) {
+        return res.status(400).json({ error: "'principal_1' max_matches must be at least 1" });
+      }
+    }
+
     // Create tournament
     const [result] = await pool.query(
       "INSERT INTO tournaments (name, date, status) VALUES (?, ?, ?)",
@@ -54,7 +70,7 @@ router.post("/", async (req, res) => {
       { tournament_id: tournamentId, match_type: 'principal_1', is_enabled: true, max_matches: 5 }
     ];
     
-    // Insert match configs
+    // Insert match configs (ensure tournament_id is correct)
     for (const config of configs) {
       await pool.query(
         "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",

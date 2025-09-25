@@ -70,6 +70,15 @@ router.post("/", async (req, res) => {
     if ((teams as any[]).length !== 2) {
       return res.status(400).json({ error: "One or both teams do not exist" });
     }
+
+    // Validate both teams are registered to the tournament
+    const [registrations] = await pool.query(
+      "SELECT team_id FROM team_tournament WHERE tournament_id = ? AND team_id IN (?, ?)",
+      [tournament_id, team_a_id, team_b_id]
+    );
+    if ((registrations as any[]).length !== 2) {
+      return res.status(400).json({ error: "Both teams must be registered to this tournament" });
+    }
     
     // Create match
     const [result] = await pool.query(
@@ -207,7 +216,11 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-      const [teams] = await connection.query("SELECT id FROM teams");
+      // Use only teams registered to this tournament
+      const [teams] = await connection.query(
+        "SELECT tt.team_id AS id FROM team_tournament tt WHERE tt.tournament_id = ? ORDER BY tt.registration_date ASC",
+        [tournamentId]
+      );
       if ((teams as any[]).length < 2) {
         return res.status(400).json({ error: "Need at least 2 teams" });
       }
@@ -215,13 +228,13 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
       // Delete existing preliminary matches for this tournament
       await connection.query("DELETE FROM matches WHERE tournament_id = ? AND match_type = 'preliminaires'", [tournamentId]);
       
-      // Reset preliminary points for all teams in this tournament
+      // Reset preliminary points for all registered teams in this tournament
       await connection.query(
         "UPDATE team_tournament_stats SET prelim_points = 0 WHERE tournament_id = ?", 
         [tournamentId]
       );
       
-      // Create team_tournament_stats entries for teams that don't have them yet
+      // Ensure team_tournament_stats entries exist for registered teams
       for (const team of (teams as any[])) {
         const [existingStats] = await connection.query(
           "SELECT id FROM team_tournament_stats WHERE team_id = ? AND tournament_id = ?",
@@ -235,30 +248,23 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
           );
         }
       }
-      
-      // Also create team_tournament associations if they don't exist
-      for (const team of (teams as any[])) {
-        const [existingAssoc] = await connection.query(
-          "SELECT id FROM team_tournament WHERE team_id = ? AND tournament_id = ?",
-          [team.id, tournamentId]
-        );
-        
-        if ((existingAssoc as any[]).length === 0) {
-          await connection.query(
-            "INSERT INTO team_tournament (team_id, tournament_id, registration_date) VALUES (?, ?, NOW())",
-            [team.id, tournamentId]
-          );
-        }
-      }
-      
-      const matches = [];
+      // Build round-robin combinations
+      const matches = [] as { team_a_id: number; team_b_id: number }[];
       for (let i = 0; i < (teams as any[]).length; i++) {
         for (let j = i + 1; j < (teams as any[]).length; j++) {
           matches.push({ team_a_id: (teams as any[])[i].id, team_b_id: (teams as any[])[j].id });
         }
       }
       
-      for (const match of matches) {
+      // Respect max_matches from tournament_match_configs if provided
+      const [configRows] = await connection.query(
+        "SELECT max_matches FROM tournament_match_configs WHERE tournament_id = ? AND match_type = 'preliminaires' AND is_enabled = 1 LIMIT 1",
+        [tournamentId]
+      );
+      const maxMatches = (configRows as any[])[0]?.max_matches as number | null | undefined;
+      const matchesToCreate = typeof maxMatches === 'number' && maxMatches > 0 ? matches.slice(0, maxMatches) : matches;
+
+      for (const match of matchesToCreate) {
         await connection.query(
           "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id) VALUES (?, 'preliminaires', ?, ?)", 
           [tournamentId, match.team_a_id, match.team_b_id]
@@ -266,7 +272,7 @@ router.post("/tournament/:tournamentId/generate/prelim", async (req, res) => {
       }
       
       await connection.commit();
-      res.status(201).json({ message: `Generated ${matches.length} preliminary matches for tournament ${tournamentId}` });
+      res.status(201).json({ message: `Generated ${matchesToCreate.length} preliminary matches for tournament ${tournamentId}` });
     } catch (err) {
       await connection.rollback();
       throw err;
@@ -295,9 +301,11 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
       await connection.beginTransaction();
       
       // Get teams with their stats for this tournament, ordered by prelim points
+      // Only teams registered to this tournament with stats
       const [teamsWithStats] = await connection.query(
         "SELECT t.id, ts.prelim_points FROM teams t " +
         "JOIN team_tournament_stats ts ON t.id = ts.team_id " +
+        "JOIN team_tournament tt ON tt.team_id = t.id AND tt.tournament_id = ts.tournament_id " +
         "WHERE ts.tournament_id = ? " +
         "ORDER BY ts.prelim_points DESC",
         [tournamentId]
@@ -346,12 +354,20 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
       // Flatten the groups back into a single array
       const sortedTeams = groupedTeams.flat();
       
-      const newMatches = [];
+      const newMatches: { team_a_id: number; team_b_id: number }[] = [];
       for (let i = 0; i < sortedTeams.length - 1; i += 2) {
         newMatches.push({ team_a_id: sortedTeams[i].id, team_b_id: sortedTeams[i + 1].id });
       }
       
-      for (const match of newMatches) {
+      // Respect max_matches from tournament_match_configs for principal_1
+      const [configRows] = await connection.query(
+        "SELECT max_matches FROM tournament_match_configs WHERE tournament_id = ? AND match_type = 'principal_1' AND is_enabled = 1 LIMIT 1",
+        [tournamentId]
+      );
+      const maxMatches = (configRows as any[])[0]?.max_matches as number | null | undefined;
+      const matchesToCreate = typeof maxMatches === 'number' && maxMatches > 0 ? newMatches.slice(0, maxMatches) : newMatches;
+
+      for (const match of matchesToCreate) {
         await connection.query(
           "INSERT INTO matches (tournament_id, match_type, team_a_id, team_b_id) VALUES (?, 'principal_1', ?, ?)", 
           [tournamentId, match.team_a_id, match.team_b_id]
@@ -365,7 +381,7 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
       );
       
       await connection.commit();
-      res.status(201).json({ message: `Generated ${newMatches.length} main matches for tournament ${tournamentId}` });
+      res.status(201).json({ message: `Generated ${matchesToCreate.length} main matches for tournament ${tournamentId}` });
     } catch (err) {
       await connection.rollback();
       throw err;
