@@ -31,6 +31,9 @@ const TournamentSummaryPage: React.FC = () => {
   const [scoreA, setScoreA] = useState<number>(0);
   const [scoreB, setScoreB] = useState<number>(0);
   const [currentStage, setCurrentStage] = useState<string>('');
+  const [showPairsModal, setShowPairsModal] = useState<boolean>(false);
+  const [modalPairs, setModalPairs] = useState<Array<{ teamA: Team; teamB: Team }>>([]);
+  const [modalTitle, setModalTitle] = useState<string>('');
 
   // Chargement des données du tournoi
   useEffect(() => {
@@ -161,6 +164,20 @@ const TournamentSummaryPage: React.FC = () => {
     });
 
     setRankings(teamRankings);
+  };
+
+  // Fonction pour afficher la modal avec les paires proposées
+  const showPairsInModal = (pairs: Array<{ teamA: Team; teamB: Team }>, title: string) => {
+    setModalPairs(pairs);
+    setModalTitle(title);
+    setShowPairsModal(true);
+  };
+
+  // Fonction pour valider les paires et créer les matchs
+  const validateAndCreateMatches = () => {
+    setNextRoundPairs(modalPairs);
+    setShowPairsModal(false);
+    createSuggestedMainMatches();
   };
 
   // Fonction pour obtenir les types de matchs uniques et triés
@@ -506,6 +523,35 @@ const TournamentSummaryPage: React.FC = () => {
 
   return (
     <PageContainer>
+      {/* Modal pour afficher les paires proposées */}
+      {showPairsModal && (
+        <ModalOverlay>
+          <ModalContainer>
+            <ModalHeader>
+              <ModalTitle>{modalTitle}</ModalTitle>
+              <CloseButton onClick={() => setShowPairsModal(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalContent>
+              <PairsList>
+                {modalPairs.map((p, idx) => (
+                  <PairItem key={`modal-${p.teamA.id}-${p.teamB.id}-${idx}`}>
+                    <TeamName>{p.teamA.name}</TeamName> vs <TeamName>{p.teamB.name}</TeamName>
+                  </PairItem>
+                ))}
+              </PairsList>
+            </ModalContent>
+            <ModalFooter>
+              <CreateMatchesButton onClick={validateAndCreateMatches}>
+                Valider et créer ces matchs
+              </CreateMatchesButton>
+              <CancelButton onClick={() => setShowPairsModal(false)}>
+                Annuler
+              </CancelButton>
+            </ModalFooter>
+          </ModalContainer>
+        </ModalOverlay>
+      )}
+      
       {/* En-tête du tournoi */}
       <TournamentHeader>
         <TournamentTitle>{tournament.name}</TournamentTitle>
@@ -564,10 +610,8 @@ const TournamentSummaryPage: React.FC = () => {
                         }
                       }
                       
-                      setNextRoundPairs(prelimPairs);
-                      setCustomPairs([...prelimPairs]);
-                      setIsEditingPairs(true);
-                      setActionMessage(`Préliminaires : ${prelimPairs.length} paire(s) proposée(s).`);
+                      // Afficher les paires dans la modal au lieu d'activer l'édition
+                      showPairsInModal(prelimPairs, "Affrontements préliminaires proposés");
                     } else {
                       setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
                     }
@@ -670,10 +714,8 @@ const TournamentSummaryPage: React.FC = () => {
                                 }
                               }
                               
-                              setNextRoundPairs(pairs);
-                              setCustomPairs([...pairs]);
-                              setIsEditingPairs(true);
-                              setActionMessage(`Manche principale ${nextRound} : ${pairs.length} paire(s) proposée(s).`);
+                              // Afficher les paires dans la modal au lieu d'activer l'édition
+                              showPairsInModal(pairs, `Affrontements de la manche ${nextRound} proposés`);
                             } else {
                               setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
                             }
@@ -693,31 +735,7 @@ const TournamentSummaryPage: React.FC = () => {
         {tournament?.status === 'completed' && (
           <ActionMessage>Le tournoi est terminé. Tous les matchs ont été joués.</ActionMessage>
         )}
-        
-        {/* Affichage des paires proposées */}
-        {isEditingPairs && (
-          <div>
-            <SuggestedList>
-              {customPairs.map((p, idx) => (
-                <li key={`custom-${p.teamA.id}-${p.teamB.id}-${idx}`}>
-                  {p.teamA.name} vs {p.teamB.name}
-                </li>
-              ))}
-            </SuggestedList>
-            <ButtonGroup>
-              <CreateMatchesButton onClick={() => {
-                setNextRoundPairs(customPairs);
-                setIsEditingPairs(false);
-                createSuggestedMainMatches();
-              }}>
-                Valider et créer ces matchs
-              </CreateMatchesButton>
-              <CancelButton onClick={togglePairsEditing}>
-                Annuler
-              </CancelButton>
-            </ButtonGroup>
-          </div>
-        )}
+      
       </ActionsSection>
 
       {/* Statistiques du tournoi */}
@@ -1476,5 +1494,90 @@ const StartTournamentButton = styled.button`
 const CompleteTournamentButton = styled(StartTournamentButton)`
   background: linear-gradient(135deg, ${theme.colors.status.warning}, ${theme.colors.status.warning}80);
 `;
+
+// Styles pour la modal
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContainer = styled.div`
+  background-color: white;
+  border-radius: ${theme.borderRadius.lg};
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${theme.spacing.lg} ${theme.spacing.xl};
+  border-bottom: 1px solid ${theme.colors.neutral.gray200};
+`;
+
+const ModalTitle = styled.h3`
+  margin: 0;
+  font-size: ${theme.typography.fontSize.lg};
+  color: ${theme.colors.primary.main};
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: ${theme.colors.text.secondary};
+  &:hover {
+    color: ${theme.colors.text.primary};
+  }
+`;
+
+const ModalContent = styled.div`
+  padding: ${theme.spacing.lg} ${theme.spacing.xl};
+  overflow-y: auto;
+  max-height: 60vh;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${theme.spacing.lg} ${theme.spacing.xl};
+  border-top: 1px solid ${theme.colors.neutral.gray200};
+  gap: ${theme.spacing.md};
+`;
+
+const PairsList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const PairItem = styled.li`
+  padding: ${theme.spacing.md};
+  border-bottom: 1px solid ${theme.colors.neutral.gray100};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing.md};
+  font-size: ${theme.typography.fontSize.md};
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
 
 export default TournamentSummaryPage;
