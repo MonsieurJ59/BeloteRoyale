@@ -1,0 +1,433 @@
+/* Variables CSS pour les valeurs du thème */
+:root {
+  /* Colors */
+  --color-primary-main: #1a472a;
+  --color-primary-light: #2d7a3d;
+  --color-primary-lighter: #4caf50;
+  --color-primary-dark: #0d2818;
+  
+  --color-secondary-main: #d32f2f;
+  --color-secondary-light: #f44336;
+  --color-secondary-lighter: #ffcdd2;
+  --color-secondary-dark: #b71c1c;
+  
+  --color-accent-main: #ff9800;
+  --color-accent-light: #ffb74d;
+  --color-accent-lighter: #ffe0b2;
+  --color-accent-dark: #f57c00;
+  
+  --color-neutral-white: #ffffff;
+  --color-neutral-gray50: #fafafa;
+  --color-neutral-gray100: #f5f5f5;
+  --color-neutral-gray200: #eeeeee;
+  --color-neutral-gray300: #e0e0e0;
+  --color-neutral-gray400: #bdbdbd;
+  --color-neutral-gray500: #9e9e9e;
+  --color-neutral-gray600: #757575;
+  --color-neutral-gray700: #616161;
+  --color-neutral-gray800: #424242;
+  --color-neutral-gray900: #212121;
+  --color-neutral-black: #000000;
+  
+  --color-status-success: #4caf50;
+  --color-status-warning: #ff9800;
+  --color-status-error: #f44336;
+  --color-status-info: #2196f3;
+  
+  --color-background-primary: #fafafa;
+  --color-background-secondary: #ffffff;
+  --color-background-dark: #1a472a;
+  --color-background-card: #ffffff;
+  --color-background-sidebar: #0d2818;
+  
+  --color-text-primary: #212121;
+  --color-text-secondary: #616161;
+  --color-text-light: #ffffff;
+  --color-text-muted: #9e9e9e;
+  
+  --color-border-light: #e0e0e0;
+  --color-border-medium: #bdbdbd;
+  --color-border-dark: #757575;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  --spacing-xxxl: 4rem;
+  
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-full: 50%;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  --shadow-xl: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+  
+  /* Typography */
+  --font-family-primary: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-heading: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-normal: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease-in-out;
+}
+
+/* Page Container */
+.teams-page {
+  width: 100%;
+}
+
+/* Header */
+.teams-header {
+  margin-bottom: var(--spacing-xxxl);
+  text-align: center;
+}
+
+/* Title */
+.teams-title {
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+}
+
+.teams-title::after {
+  content: '';
+  position: absolute;
+  bottom: calc(-1 * var(--spacing-sm));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-accent-main), var(--color-accent-light));
+  border-radius: var(--border-radius-sm);
+}
+
+@media (max-width: 768px) {
+  .teams-title {
+    font-size: var(--font-size-3xl);
+  }
+}
+
+/* Subtitle */
+.teams-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .teams-subtitle {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Teams Grid */
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xxxl);
+}
+
+@media (max-width: 768px) {
+  .teams-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Team Card */
+.team-card {
+  background-color: var(--color-background-card);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-xl);
+  transition: all var(--transition-normal);
+  border: 1px solid var(--color-border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-secondary-main), var(--color-accent-main));
+}
+
+.team-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-accent-main);
+}
+
+/* Team Name */
+.team-name {
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-text-primary);
+  text-align: center;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+/* Players List */
+.players-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Player Item */
+.player-item {
+  padding: var(--spacing-sm) 0;
+  display: flex;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.player-item:not(:last-child) {
+  border-bottom: 1px dashed var(--color-border-light);
+}
+
+.player-item:hover {
+  background-color: var(--color-neutral-gray50);
+  border-radius: var(--border-radius-sm);
+  padding-left: var(--spacing-sm);
+  margin: 0 calc(-1 * var(--spacing-sm));
+}
+
+/* Player Icon */
+.player-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--color-primary-main), var(--color-primary-light));
+  color: var(--color-text-light);
+  border-radius: var(--border-radius-full);
+  margin-right: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Player Name */
+.player-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Form Container */
+.form-container {
+  background: linear-gradient(135deg, var(--color-background-card), var(--color-neutral-gray50));
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xxl);
+  margin-bottom: var(--spacing-xxxl);
+  border: 1px solid var(--color-border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.form-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-accent-main), var(--color-accent-light));
+}
+
+/* Form Title */
+.form-title {
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xl);
+  margin-top: var(--spacing-sm);
+  text-align: center;
+}
+
+/* Form */
+.teams-form {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .teams-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .form-group:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Label */
+.form-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Input */
+.form-input {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-fast);
+  background-color: var(--color-background-card);
+}
+
+.form-input:focus {
+  border-color: var(--color-primary-main);
+  outline: 2px solid rgba(26, 71, 42, 0.2);
+  outline-offset: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Submit Button */
+.submit-button {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--color-primary-main), var(--color-primary-light));
+  color: var(--color-text-light);
+  border: none;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
+}
+
+.submit-button:hover {
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary-main));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.submit-button:disabled {
+  background: var(--color-neutral-gray400);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading Message */
+.loading-message {
+  text-align: center;
+  padding: var(--spacing-xxxl);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  background-color: var(--color-neutral-gray50);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-light);
+}
+
+/* Error Message */
+.error-message {
+  text-align: center;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-base);
+  color: var(--color-status-error);
+  background-color: rgba(244, 67, 54, 0.2);
+  border-radius: var(--border-radius-md);
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Success Message */
+.success-message {
+  text-align: center;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-base);
+  color: var(--color-status-success);
+  background-color: rgba(76, 175, 80, 0.2);
+  border-radius: var(--border-radius-md);
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xxxl);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  background-color: var(--color-neutral-gray50);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-light);
+}
+
+/* Section Title */
+.section-title {
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+}

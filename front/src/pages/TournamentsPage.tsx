@@ -6,6 +6,7 @@ import TournamentModal from '../components/TournamentModal'; // Modal pour crée
 import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
 import '../styles/TournamentsPage.css'; // Import du fichier CSS
 
+
 // Composant principal de la page des tournois
 const TournamentsPage: React.FC = () => {
   // Utilisation du contexte pour accéder aux données des tournois
