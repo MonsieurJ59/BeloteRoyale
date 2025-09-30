@@ -6,6 +6,8 @@ import { useParams } from 'react-router-dom';
 import { TournamentContext } from '../context/TournamentContext';
 import { MatchContext } from '../context/MatchContext';
 import { TeamContext } from '../context/TeamContext';
+// Importation de la configuration API
+import { API_URL } from '../config';
 // Importation des types TypeScript depuis le backend
 import type { Match, Tournament, TeamTournamentStats } from '../types/api';
 // Importation des styles
@@ -86,7 +88,7 @@ const TournamentDetailPage = () => {
       
       try {
         // Appel à l'API pour récupérer les statistiques
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/team-tournament-stats/tournament/${id}`);
+        const response = await fetch(`${API_URL}/team-tournament-stats/tournament/${id}`);
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des statistiques');
         }
@@ -123,7 +125,7 @@ const TournamentDetailPage = () => {
   // Fonctions pour générer les matchs
   const generatePrelimMatches = async (tournamentId: number) => {
     try {
-      const response = await fetch(`http://localhost:4000/matches/tournament/${tournamentId}/generate/prelim`, {
+      const response = await fetch(`${API_URL}/matches/tournament/${tournamentId}/generate/prelim`, {
         method: 'POST'
       });
       if (response.ok) {
@@ -137,7 +139,7 @@ const TournamentDetailPage = () => {
   
   const generateMainMatches = async (tournamentId: number) => {
     try {
-      const response = await fetch(`http://localhost:4000/matches/tournament/${tournamentId}/generate/main`, {
+      const response = await fetch(`${API_URL}/matches/tournament/${tournamentId}/generate/main`, {
         method: 'POST'
       });
       if (response.ok) {

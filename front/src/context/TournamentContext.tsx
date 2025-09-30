@@ -2,6 +2,7 @@
 import { createContext, useState, useEffect } from 'react'; // Modules React de base
 import type { ReactNode } from 'react'; // Type ReactNode
 import type { Tournament } from '../types/api'; // Type Tournament importé depuis le backend
+import { API_URL } from '../config'; // Configuration API centralisée
 
 // Payload étendue pour la création d'un tournoi (avec configs et équipes sélectionnées)
 type CreateTournamentPayload = Omit<Tournament, 'id' | 'created_at'> & {
@@ -47,33 +48,18 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
 
   // Fonction pour récupérer tous les tournois depuis l'API
   const fetchTournaments = async () => {
-    setLoading(true); // Début du chargement
-    setError(null); // Réinitialisation des erreurs
     try {
-      // Appel à l'API pour récupérer les tournois
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tournaments`);
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`${API_URL}/tournaments`);
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération des tournois');
       }
       const data = await response.json();
-      
-      // Formater les dates pour chaque tournoi
-      // Les dates arrivent comme des chaînes de caractères depuis l'API
-      // On les convertit en objets Date pour faciliter leur manipulation
-      const formattedTournaments = data.map((tournament: any) => ({
-        ...tournament, // On garde toutes les propriétés du tournoi
-        date: new Date(tournament.date), // On convertit la date en objet Date
-        created_at: new Date(tournament.created_at)
-      }));
-      
-      // Mise à jour de l'état avec les tournois formatés
-      setTournaments(formattedTournaments);
+      setTournaments(data);
     } catch (err) {
-      // Gestion des erreurs
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-      console.error('Erreur lors de la récupération des tournois:', err);
     } finally {
-      // Dans tous les cas, on arrête le chargement
       setLoading(false);
     }
   };
@@ -84,53 +70,39 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
   }, []); // Tableau de dépendances vide = exécution uniquement au montage
 
   // Fonction pour créer un nouveau tournoi
-  const createTournament = async (tournamentData: CreateTournamentPayload): Promise<Tournament> => {
+  const createTournament = async (tournament: CreateTournamentPayload): Promise<Tournament> => {
     try {
-      // Formater la date au format YYYY-MM-DD pour MySQL
-      const formattedData = {
-        ...tournamentData,
-        date: tournamentData.date instanceof Date 
-          ? tournamentData.date.toISOString().split('T')[0]
-          : tournamentData.date
-      };
+      setLoading(true);
+      setError(null);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tournaments`, {
+      // Créer le tournoi
+      const response = await fetch(`${API_URL}/tournaments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formattedData),
+        body: JSON.stringify(tournament),
       });
-      
+
       if (!response.ok) {
         throw new Error('Erreur lors de la création du tournoi');
       }
-      
-      const newTournament = await response.json();
-      const formattedTournament = {
-        ...newTournament,
-        date: new Date(newTournament.date),
-        created_at: new Date(newTournament.created_at)
-      };
-      
-      setTournaments(prev => [formattedTournament, ...prev]);
 
-      // Inscription des équipes sélectionnées (si fournies)
-      if (tournamentData.selected_team_ids && tournamentData.selected_team_ids.length > 0) {
-        try {
-          await Promise.all(
-            tournamentData.selected_team_ids.map(teamId =>
-              fetch(`${import.meta.env.VITE_API_URL}/team-tournaments/tournament/${formattedTournament.id}/teams`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ team_id: teamId })
-              })
-            )
-          );
-        } catch (err) {
-          console.error('Erreur lors de l\'inscription des équipes:', err);
-          // On ne bloque pas la création du tournoi si l'inscription échoue pour certaines équipes
-        }
+      const newTournament = await response.json();
+
+      // Inscrire les équipes sélectionnées au tournoi
+      if (tournament.selected_team_ids && tournament.selected_team_ids.length > 0) {
+        await Promise.all(
+          tournament.selected_team_ids.map(teamId =>
+            fetch(`${API_URL}/team-tournaments/tournament/${newTournament.id}/teams`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ team_id: teamId }),
+            })
+          )
+        );
       }
       return formattedTournament;
     } catch (err) {
@@ -141,30 +113,23 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
   };
 
   // Fonction pour modifier un tournoi
-  const updateTournament = async (id: number, tournamentData: Partial<Omit<Tournament, 'id' | 'created_at'>>): Promise<Tournament> => {
+  const updateTournament = async (id: number, tournament: Partial<Omit<Tournament, 'id' | 'created_at'>>): Promise<Tournament> => {
     try {
-      // Formater la date au format YYYY-MM-DD pour MySQL si elle existe
-      const formattedData = {
-        ...tournamentData,
-        ...(tournamentData.date && {
-          date: tournamentData.date instanceof Date 
-            ? tournamentData.date.toISOString().split('T')[0]
-            : tournamentData.date
-        })
-      };
+      setLoading(true);
+      setError(null);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tournaments/${id}`, {
+      const response = await fetch(`${API_URL}/tournaments/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formattedData),
+        body: JSON.stringify(tournament),
       });
-      
+
       if (!response.ok) {
-        throw new Error('Erreur lors de la modification du tournoi');
+        throw new Error('Erreur lors de la mise à jour du tournoi');
       }
-      
+
       const updatedTournament = await response.json();
       const formattedTournament = {
         ...updatedTournament,
@@ -184,10 +149,13 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
   // Fonction pour supprimer un tournoi
   const deleteTournament = async (id: number): Promise<void> => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tournaments/${id}`, {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_URL}/tournaments/${id}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Erreur lors de la suppression du tournoi');
       }

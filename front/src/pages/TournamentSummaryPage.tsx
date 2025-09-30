@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { theme } from '../styles/theme';
+import { API_URL } from '../config';
 import type { Tournament, Team, Match, TeamTournamentStats, TournamentMatchConfig } from '../types/api';
 import {
   PageContainer,
@@ -113,11 +114,11 @@ const TournamentSummaryPage: React.FC = () => {
         
         // Récupération des données en parallèle
         const [tournamentRes, teamRankingsRes, matchesRes, regsRes, configsRes] = await Promise.all([
-          fetch(`http://localhost:4000/tournaments/${id}`),
-          fetch(`http://localhost:4000/teams/rankings/tournament/${id}`),
-          fetch(`http://localhost:4000/matches?tournament_id=${id}`),
-          fetch(`http://localhost:4000/team-tournaments/tournament/${id}/teams`),
-          fetch(`http://localhost:4000/tournament-match-configs/tournament/${id}/configs`)
+          fetch(`${API_URL}/tournaments/${id}`),
+          fetch(`${API_URL}/teams/rankings/tournament/${id}`),
+          fetch(`${API_URL}/matches?tournament_id=${id}`),
+          fetch(`${API_URL}/team-tournaments/tournament/${id}/teams`),
+          fetch(`${API_URL}/tournament-match-configs/tournament/${id}/configs`)
         ]);
 
         if (!tournamentRes.ok) throw new Error('Tournoi non trouvé');
@@ -313,100 +314,11 @@ const TournamentSummaryPage: React.FC = () => {
         }
       }
       
-      setNextRoundPairs(prelimPairs);
-      setCustomPairs([...prelimPairs]);
-      setIsEditingPairs(true);
-      setActionMessage(
-        `Préliminaires: ${prelimPairs.length} paire(s) proposée(s) pour les matchs préliminaires.`
-      );
-      return;
+      // Afficher les paires dans la modal au lieu d'activer l'édition
+      showPairsInModal(prelimPairs, "Affrontements préliminaires proposés");
+    } else {
+      setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
     }
-    
-    // Vérifier si tous les matchs préliminaires sont terminés
-    const pendingPrelims = prelimMatches.filter(m => m.winner_id === null);
-    if (pendingPrelims.length > 0) {
-      setNextRoundPairs([]);
-      setActionMessage(
-        `Préliminaires en cours: ${pendingPrelims.length} match(s) préliminaire(s) en attente de résultat.`
-      );
-      return;
-    }
-
-    // Étape 2: préparer la prochaine manche principale
-    const principalConfig = configs.find(c => c.match_type === 'principal_1' && c.is_enabled);
-    const maxRounds = principalConfig?.max_matches ?? 1;
-
-    // Compter combien de matchs principaux chaque équipe a déjà joués
-    const mainMatches = allMatches.filter(m => m.match_type.startsWith('principal_'));
-    const mainCountByTeam = new Map<number, number>();
-    teams.forEach(t => mainCountByTeam.set(t.id, 0));
-    mainMatches.forEach(m => {
-      mainCountByTeam.set(m.team_a_id, (mainCountByTeam.get(m.team_a_id) || 0) + 1);
-      mainCountByTeam.set(m.team_b_id, (mainCountByTeam.get(m.team_b_id) || 0) + 1);
-    });
-
-    const roundsCompleted = Math.min(...teams.map(t => mainCountByTeam.get(t.id) || 0));
-    if (roundsCompleted >= maxRounds) {
-      setNextRoundPairs([]);
-      setActionMessage('Tous les matchs principaux prévus ont été programmés.');
-      return;
-    }
-
-    // Vérifier si tous les matchs principaux de la manche actuelle sont terminés
-    const currentRound = roundsCompleted + 1;
-    const currentRoundMatches = mainMatches.filter(m => 
-      m.match_type === `principal_${currentRound}` || 
-      (currentRound === 1 && m.match_type === 'principal_1')
-    );
-    const pendingCurrentRound = currentRoundMatches.filter(m => m.winner_id === null);
-    
-    if (pendingCurrentRound.length > 0) {
-      setNextRoundPairs([]);
-      setActionMessage(
-        `Manche principale ${currentRound} en cours: ${pendingCurrentRound.length} match(s) en attente de résultat.`
-      );
-      return;
-    }
-
-    // Construire l'historique des affrontements pour éviter les répétitions
-    const facedMap = new Map<number, Set<number>>();
-    teams.forEach(t => facedMap.set(t.id, new Set()));
-    mainMatches.forEach(m => {
-      facedMap.get(m.team_a_id)!.add(m.team_b_id);
-      facedMap.get(m.team_b_id)!.add(m.team_a_id);
-    });
-
-    // Équipes éligibles pour la prochaine manche = celles qui ont joué exactement roundsCompleted matchs principaux
-    const eligible = teams.filter(t => (mainCountByTeam.get(t.id) || 0) === roundsCompleted);
-
-    // Algorithme glouton: apparier en minimisant les répétitions
-    const pairs: Array<{ teamA: Team; teamB: Team }> = [];
-    const used = new Set<number>();
-    const sorted = [...eligible].sort((a, b) => (facedMap.get(a.id)!.size - facedMap.get(b.id)!.size));
-
-    for (const team of sorted) {
-      if (used.has(team.id)) continue;
-      // Chercher des adversaires non utilisés avec lesquels il n'a jamais joué
-      let opponent = eligible.find(t => !used.has(t.id) && t.id !== team.id && !facedMap.get(team.id)!.has(t.id));
-      // Si pas trouvé, accepter un adversaire déjà affronté le moins souvent (fallback)
-      if (!opponent) {
-        opponent = eligible.find(t => !used.has(t.id) && t.id !== team.id);
-      }
-      if (opponent) {
-        pairs.push({ teamA: team, teamB: opponent });
-        used.add(team.id);
-        used.add(opponent.id);
-      }
-    }
-
-    setNextRoundPairs(pairs);
-    setCustomPairs([...pairs]); // Initialiser les paires personnalisées avec les suggestions
-    setIsEditingPairs(true); // Activer le mode d'édition des paires
-    setActionMessage(
-      pairs.length > 0
-        ? `Manche principale ${currentRound + 1}: ${pairs.length} paire(s) proposée(s).`
-        : 'Aucune paire suggérée pour la prochaine manche.'
-    );
   };
 
   // Créer les matchs suggérés via l'API
@@ -436,7 +348,7 @@ const TournamentSummaryPage: React.FC = () => {
       
       // Créer les matchs un par un
       for (const pair of nextRoundPairs) {
-        const response = await fetch(`http://localhost:4000/matches`, {
+        const response = await fetch(`${API_URL}/matches`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -454,7 +366,7 @@ const TournamentSummaryPage: React.FC = () => {
       }
       
       // Recharger les matchs
-      const matchesRes = await fetch(`http://localhost:4000/matches?tournament_id=${id}`);
+      const matchesRes = await fetch(`${API_URL}/matches?tournament_id=${id}`);
       if (matchesRes.ok) {
         const matchesData = await matchesRes.json();
         setMatches(matchesData);
@@ -485,7 +397,7 @@ const TournamentSummaryPage: React.FC = () => {
     if (!id || !tournament) return;
     try {
       const newStatus = tournament.status === 'upcoming' ? 'in_progress' : 'completed';
-      const response = await fetch(`http://localhost:4000/tournaments/${id}`, {
+      const response = await fetch(`${API_URL}/tournaments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -521,7 +433,7 @@ const TournamentSummaryPage: React.FC = () => {
       }
       
       // Appel à l'API pour mettre à jour le match
-      const response = await fetch(`http://localhost:4000/matches/${matchId}`, {
+      const response = await fetch(`${API_URL}/matches/${matchId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -534,7 +446,7 @@ const TournamentSummaryPage: React.FC = () => {
       if (!response.ok) throw new Error('Erreur lors de la mise à jour du score');
       
       // Recharger les matchs et recalculer
-      const matchesRes = await fetch(`http://localhost:4000/matches?tournament_id=${id}`);
+      const matchesRes = await fetch(`${API_URL}/matches?tournament_id=${id}`);
       if (matchesRes.ok) {
         const matchesData = await matchesRes.json();
         setMatches(matchesData);

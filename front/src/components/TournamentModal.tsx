@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Tournament, Team } from '../types/api';
+import { API_URL } from '../config';
 import {
   ModalOverlay,
   ModalContent,
@@ -78,7 +79,7 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
       try {
         setTeamsLoading(true);
         setTeamsError(null);
-        const resp = await fetch(`${import.meta.env.VITE_API_URL}/teams`);
+        const resp = await fetch(`${API_URL}/teams`);
         if (!resp.ok) throw new Error('Erreur lors du chargement des équipes');
         const data = await resp.json();
         setTeams(data);
