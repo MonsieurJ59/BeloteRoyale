@@ -8,7 +8,7 @@ import {
   NavLinks,
   NavLink,
   MobileMenuButton
-} from '../styles/Navbar.styles';
+} from '../styles/Navbar.styles.ts';
 
 // Composant principal de la barre de navigation
 const Navbar = () => {

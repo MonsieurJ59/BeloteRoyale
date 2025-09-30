@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   FooterText,
   MobileOverlay
-} from '../styles/Sidebar.styles';
+} from '../styles/Sidebar.styles.ts';
 
 // Icônes SVG pour la navigation
 const HomeIcon = () => (
