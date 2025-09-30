@@ -1,0 +1,357 @@
+/* Styles pour TournamentsPage */
+
+/* Conteneur principal de la page */
+.page-container {
+  width: 100%;
+}
+
+/* Style du conteneur d'en-tête */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+}
+
+/* Style du titre principal */
+.title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  position: relative;
+  margin: 0;
+}
+
+.title::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b6b, #ffa8a8);
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .title {
+    text-align: center;
+  }
+  
+  .title::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+/* Style du bouton de création */
+.create-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #1a472a;
+  color: #fff;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-button:hover {
+  background-color: #2d7a3d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.create-button:focus {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
+/* Style du conteneur des onglets */
+.tabs-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
+}
+
+@media (max-width: 768px) {
+  .tabs-container {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+}
+
+/* Style des onglets */
+.tab {
+  padding: 0.75rem 1rem;
+  background-color: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  color: #666;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.tab:hover {
+  background-color: rgba(26, 71, 42, 0.1);
+  color: #1a472a;
+  transform: translateY(-1px);
+}
+
+.tab:focus {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
+.tab.active {
+  background-color: #1a472a;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tab.active:hover {
+  background-color: #2d7a3d;
+}
+
+@media (max-width: 768px) {
+  .tab {
+    flex: 1;
+    min-width: 80px;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Style de la grille de tournois (responsive) */
+.tournaments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .tournaments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Style des cartes de tournoi */
+.tournament-card {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: all 0.3s;
+  border: 1px solid #eee;
+  overflow: hidden;
+}
+
+.tournament-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1a472a, #ff6b6b);
+}
+
+.tournament-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  border-color: #ff6b6b;
+}
+
+/* Style du conteneur des boutons d'action */
+.action-buttons {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  gap: 0.25rem;
+  z-index: 1;
+}
+
+/* Style des boutons d'action */
+.action-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.action-button.edit {
+  background-color: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+}
+
+.action-button.delete {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+.action-button.edit:hover:not(:disabled) {
+  background-color: rgba(0, 123, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.action-button.delete:hover:not(:disabled) {
+  background-color: rgba(220, 53, 69, 0.3);
+  transform: scale(1.1);
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-button.edit:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.action-button.delete:focus {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
+}
+
+/* Style du badge de statut avec couleurs conditionnelles */
+.tournament-status {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tournament-status.upcoming {
+  background-color: rgba(0, 123, 255, 0.2);
+  color: #007bff;
+}
+
+.tournament-status.in-progress {
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+.tournament-status.completed {
+  background-color: #dee2e6;
+  color: #6c757d;
+}
+
+/* Style du nom du tournoi */
+.tournament-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+  line-height: 1.2;
+  margin-top: 0.5rem;
+  padding-top: 2rem;
+}
+
+/* Style de la date du tournoi */
+.tournament-date {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.tournament-date::before {
+  content: '📅';
+  margin-right: 0.5rem;
+}
+
+/* Style du bouton de détails */
+.view-details-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background-color: #1a472a;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.view-details-button:hover {
+  background-color: #2d7a3d;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Style du message de chargement */
+.loading-message {
+  text-align: center;
+  font-size: 1.125rem;
+  color: #666;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  border: 1px solid #eee;
+}
+
+/* Style du message d'erreur */
+.error-message {
+  text-align: center;
+  font-size: 1.125rem;
+  color: #dc3545;
+  margin: 2rem 0;
+  padding: 1rem;
+  background-color: rgba(220, 53, 69, 0.1);
+  border-radius: 0.375rem;
+  border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+/* Style du message quand aucun tournoi n'est trouvé */
+.empty-message {
+  text-align: center;
+  font-size: 1.125rem;
+  color: #666;
+  margin: 2rem 0;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  border: 1px solid #eee;
+}
