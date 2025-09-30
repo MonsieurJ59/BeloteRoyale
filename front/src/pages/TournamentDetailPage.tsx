@@ -1,295 +1,40 @@
 // Importation des hooks React nécessaires
 import { useContext, useEffect, useState } from 'react';
 // Importation des composants et hooks de React Router
-import { useParams, Link } from 'react-router-dom';
-// Importation de styled-components pour le styling
-import styled from 'styled-components';
+import { useParams } from 'react-router-dom';
 // Importation des contextes pour accéder aux données globales
 import { TournamentContext } from '../context/TournamentContext';
 import { MatchContext } from '../context/MatchContext';
 import { TeamContext } from '../context/TeamContext';
 // Importation des types TypeScript depuis le backend
 import type { Match, Tournament, TeamTournamentStats } from '../types/api';
-
-const PageContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  
-  @media (max-width: 768px) {
-    padding: 15px;
-  }
-`;
-
-const BackLink = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  color: #3498db;
-  text-decoration: none;
-  margin-bottom: 20px;
-  font-weight: 500;
-  
-  &:hover {
-    text-decoration: underline;
-  }
-  
-  &:before {
-    content: '←';
-    margin-right: 8px;
-  }
-`;
-
-const Header = styled.header`
-  margin-bottom: 30px;
-`;
-
-const Title = styled.h1`
-  font-size: 2.5rem;
-  color: #2c3e50;
-  margin-bottom: 10px;
-  
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const TournamentInfo = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const TournamentDate = styled.p`
-  font-size: 1.1rem;
-  color: #666;
-  margin-right: 20px;
-  
-  @media (max-width: 768px) {
-    margin-bottom: 10px;
-  }
-`;
-
-const TournamentStatus = styled.span<{ status: string }>`
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  background-color: ${({ status }) => {
-    switch (status) {
-      case 'in_progress':
-        return '#e1f5fe';
-      case 'upcoming':
-        return '#e8f5e9';
-      case 'completed':
-        return '#f5f5f5';
-      default:
-        return '#f5f5f5';
-    }
-  }};
-  color: ${({ status }) => {
-    switch (status) {
-      case 'in_progress':
-        return '#0288d1';
-      case 'upcoming':
-        return '#388e3c';
-      case 'completed':
-        return '#616161';
-      default:
-        return '#616161';
-    }
-  }};
-`;
-
-const SectionTitle = styled.h2`
-  color: #2c3e50;
-  margin: 30px 0 20px 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  
-  @media (max-width: 768px) {
-    font-size: 1.3rem;
-    margin: 25px 0 15px 0;
-    flex-direction: column;
-    gap: 10px;
-  }
-`;
-
-const GenerateButton = styled.button`
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background-color 0.3s ease;
-  
-  &:hover {
-    background-color: #2980b9;
-  }
-  
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-`;
-
-const NoDataMessage = styled.p`
-  text-align: center;
-  color: #7f8c8d;
-  font-style: italic;
-  margin: 20px 0;
-`;
-
-const MatchesGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const MatchCard = styled.div`
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const MatchHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-`;
-
-const MatchType = styled.span<{ isPrelim: boolean }>`
-  font-size: 0.9rem;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background-color: ${({ isPrelim }) => isPrelim ? '#fff8e1' : '#e8f5e9'};
-  color: ${({ isPrelim }) => isPrelim ? '#ffa000' : '#388e3c'};
-`;
-
-const TeamsContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-`;
-
-const TeamName = styled.div`
-  font-weight: 500;
-  font-size: 1.1rem;
-  color: #2c3e50;
-  flex: 1;
-  text-align: center;
-`;
-
-const VersusText = styled.div`
-  font-size: 0.9rem;
-  color: #95a5a6;
-  margin: 0 10px;
-`;
-
-const ScoreContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  padding: 10px;
-`;
-
-const Score = styled.div<{ isWinner?: boolean }>`
-  font-size: 1.5rem;
-  font-weight: ${({ isWinner }) => isWinner ? '700' : '500'};
-  color: ${({ isWinner }) => isWinner ? '#27ae60' : '#2c3e50'};
-  flex: 1;
-  text-align: center;
-`;
-
-const ScoreInput = styled.input`
-  width: 60px;
-  padding: 8px;
-  font-size: 1.2rem;
-  text-align: center;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-`;
-
-const UpdateScoreButton = styled.button`
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.3s ease;
-  
-  &:hover {
-    background-color: #2980b9;
-  }
-`;
-
-const RankingsTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 40px;
-  
-  th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-  }
-  
-  th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #2c3e50;
-  }
-  
-  tr:hover {
-    background-color: #f8f9fa;
-  }
-  
-  @media (max-width: 768px) {
-    display: block;
-    overflow-x: auto;
-  }
-`;
-
-const LoadingMessage = styled.div`
-  text-align: center;
-  padding: 40px;
-  font-size: 1.2rem;
-  color: #666;
-`;
-
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 40px;
-  font-size: 1.2rem;
-  color: #e74c3c;
-  background-color: #fdeaea;
-  border-radius: 8px;
-  margin-bottom: 20px;
-`;
+// Importation des styles
+import {
+  PageContainer,
+  BackLink,
+  Header,
+  Title,
+  TournamentInfo,
+  TournamentDate,
+  TournamentStatus,
+  SectionTitle,
+  GenerateButton,
+  NoDataMessage,
+  MatchesGrid,
+  MatchCard,
+  MatchHeader,
+  MatchType,
+  TeamsContainer,
+  TeamName,
+  VersusText,
+  ScoreContainer,
+  Score,
+  ScoreInput,
+  UpdateScoreButton,
+  RankingsTable,
+  LoadingMessage,
+  ErrorMessage
+} from '../styles/TournamentDetailPage.styles.ts';
 
 const TournamentDetailPage = () => {
   // Récupération du paramètre id depuis l'URL avec useParams
@@ -521,7 +266,7 @@ const TournamentDetailPage = () => {
           </tbody>
         </RankingsTable>
       ) : (
-        <p>Aucune statistique disponible pour ce tournoi.</p>
+        <NoDataMessage>Aucune statistique disponible pour ce tournoi.</NoDataMessage>
       )}
       
       {/* Section des matchs préliminaires */}
