@@ -1,17 +1,4 @@
 services:
-  # Commenté pour utiliser MySQL à la place
-  # db:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: belote
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - db-data:/var/lib/postgresql/data
-  #     - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
   mysql:
     image: mysql:8
     environment:
@@ -24,10 +11,10 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
       - ./db/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    # Utiliser l'émulation pour exécuter l'image amd64 sur arm64
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
@@ -37,6 +24,7 @@ services:
       - "8082:80"
     depends_on:
       - mysql
+    restart: unless-stopped
 
   backend:
     build: 
@@ -58,8 +46,7 @@ services:
       - ./backend:/app
       - /app/node_modules
     restart: unless-stopped
-    command: >-
-      sh -c "npm install && npm run dev"
+    command: sh -c "npm run dev"
 
   frontend:
     build: 
@@ -75,21 +62,7 @@ services:
       - ./front:/app
       - /app/node_modules
     restart: unless-stopped
-
-  # Commenté pour utiliser phpMyAdmin à la place
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@belote.com
-  #     PGADMIN_DEFAULT_PASSWORD: admin
-  #   ports:
-  #     - "8080:80"
-  #   depends_on:
-  #     - db
-  #   volumes:
-  #     - pgadmin-data:/var/lib/pgadmin
+    command: npm run dev -- --host 0.0.0.0
 
 volumes:
-  # db-data:
-  # pgadmin-data:
   mysql-data:

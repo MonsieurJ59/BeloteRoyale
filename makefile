@@ -1,49 +1,62 @@
 # 🐳 Commandes Docker
 .PHONY: start stop restart logs clean rebuild db-reset
 
-# Démarrer tous les services
+# Démarrer tous les services (sans rebuild)
 start:
+	docker-compose up -d
+
+# Démarrer avec rebuild (seulement quand nécessaire)
+rebuild:
 	docker-compose up -d --build
+
+# Démarrage rapide (sans détacher)
+dev:
+	docker-compose up
 
 # Arrêter tous les services
 stop:
 	docker-compose down
 
-# Redémarrer tous les services
+# Redémarrer les services
 restart:
-	docker-compose down && docker-compose up -d --build
+	docker-compose restart
 
-# Afficher les logs
+# Nettoyer et redémarrer complètement
+clean-start:
+	docker-compose down -v
+	docker-compose up -d --build
+
+# Voir les logs
 logs:
 	docker-compose logs -f
 
-# Afficher les logs d'un service spécifique
-logs-%:
-	docker-compose logs -f $*
+# Voir les logs d'un service spécifique
+logs-backend:
+	docker-compose logs -f backend
 
-# Nettoyer les volumes (attention, cela supprime toutes les données)
-clean:
-	docker-compose down -v
+logs-frontend:
+	docker-compose logs -f frontend
 
-# Reconstruire les images
-rebuild:
-	docker-compose build --no-cache
+logs-mysql:
+	docker-compose logs -f mysql
 
-# Réinitialiser la base de données
-db-reset:
-
-
-# Accéder au shell d'un service
-shell-%:
-	docker-compose exec $* sh
-
-# Accéder à la base de données PostgreSQL
-db-shell:
-	docker-compose exec db psql -U postgres -d belote
-
-fixtures: 
+# Exécuter les fixtures
+fixtures:
 	docker-compose exec backend npm run seed
 
-reset-docker:
-	docker-compose down -v
-	docker-compose up -d --build
+# Entrer dans le conteneur backend
+shell-backend:
+	docker-compose exec backend sh
+
+# Entrer dans le conteneur frontend
+shell-frontend:
+	docker-compose exec frontend sh
+
+# Voir le statut des conteneurs
+status:
+	docker-compose ps
+
+# Nettoyer les images et volumes inutilisés
+clean:
+	docker system prune -f
+	docker volume prune -f
