@@ -89,6 +89,18 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Vérifier si l'équipe participe à un tournoi
+    const [teamTournaments] = await pool.query(
+      "SELECT * FROM team_tournament WHERE team_id = ?",
+      [id]
+    );
+
+    if ((teamTournaments as any[]).length > 0) {
+      return res.status(400).json({ 
+        error: "Impossible de supprimer cette équipe car elle participe à un ou plusieurs tournois" 
+      });
+    }
+
     const [result] = await pool.query("DELETE FROM teams WHERE id = ?", [id]);
 
     if ((result as any).affectedRows === 0) {

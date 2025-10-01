@@ -309,3 +309,46 @@ export const EmptyState = styled.div`
   border-radius: ${theme.borderRadius.lg};
   border: 1px solid ${theme.colors.border.light};
 `;
+
+// Ajouter à la fin du fichier
+
+// Style des boutons d'action
+export const ActionButtons = styled.div`
+  display: flex;
+  gap: ${theme.spacing.xs};
+  margin-top: ${theme.spacing.md};
+`;
+
+export const ActionButton = styled.button<{ $variant?: 'edit' | 'delete' }>`
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: ${theme.borderRadius.sm};
+  cursor: pointer;
+  transition: all ${theme.transitions.fast};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+
+  background-color: ${props => props.$variant === 'edit' 
+    ? theme.colors.status.info + '20' 
+    : props.$variant === 'delete' 
+      ? theme.colors.status.error + '20'
+      : theme.colors.neutral.gray200};
+
+  color: ${props => props.$variant === 'edit' 
+    ? theme.colors.status.info 
+    : props.$variant === 'delete' 
+      ? theme.colors.status.error
+      : theme.colors.text.secondary};
+
+  &:hover:not(:disabled) {
+    background-color: ${props => props.$variant === 'edit' 
+      ? theme.colors.status.info + '30' 
+      : props.$variant === 'delete' 
+        ? theme.colors.status.error + '30'
+        : theme.colors.neutral.gray300};
+    transform: scale(1.1);
+  }
+`;

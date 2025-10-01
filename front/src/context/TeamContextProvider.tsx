@@ -75,6 +75,63 @@ export const TeamProvider: React.FC<TeamProviderProps> = ({ children }) => {
     }
   };
 
+  // Fonction pour mettre à jour une équipe
+  const updateTeam = async (id: number, name: string, player1: string, player2: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/teams/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          player1,
+          player2,
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Erreur lors de la modification de l\'équipe');
+      }
+  
+      const updatedTeam = await response.json();
+      setTeams(prevTeams => 
+        prevTeams.map(team => team.id === id ? updatedTeam : team)
+      );
+      return updatedTeam;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fonction pour supprimer une équipe
+  const deleteTeam = async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/teams/${id}`, {
+        method: 'DELETE',
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la suppression de l\'équipe');
+      }
+  
+      setTeams(prevTeams => prevTeams.filter(team => team.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Effet qui s'exécute au montage du composant pour charger les équipes
   useEffect(() => {
     fetchTeams(); // Appel initial pour charger les équipes
@@ -84,14 +141,16 @@ export const TeamProvider: React.FC<TeamProviderProps> = ({ children }) => {
   return (
     <TeamContext.Provider
       value={{
-        teams, // Liste des équipes
-        loading, // État de chargement
-        error, // Message d'erreur éventuel
-        fetchTeams, // Fonction pour récupérer les équipes
-        addTeam, // Fonction pour ajouter une équipe
+        teams,
+        loading,
+        error,
+        fetchTeams,
+        addTeam,
+        updateTeam,
+        deleteTeam,
       }}
     >
-      {children} {/* Rendu des composants enfants */}
+      {children}
     </TeamContext.Provider>
   );
 };

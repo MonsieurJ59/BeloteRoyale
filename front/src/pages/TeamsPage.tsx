@@ -24,13 +24,25 @@ import {
   LoadingMessage,
   ErrorMessage,
   SuccessMessage,
-  EmptyState
+  EmptyState,
+  ActionButtons,
+  ActionButton
 } from '../styles/TeamsPage.styles.ts';
+import {
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  CloseButton,
+  ModalForm,
+  ButtonGroup,
+  CancelButton
+} from '../styles/TeamModal.styles.ts';
 
 // Composant principal de la page des équipes
 const TeamsPage = () => {
   // Utilisation du contexte pour accéder aux données et fonctions liées aux équipes
-  const { teams, loading, error, addTeam } = useContext(TeamContext);
+  const { teams, loading, error, addTeam, updateTeam, deleteTeam } = useContext(TeamContext);
   
   // États locaux pour gérer le formulaire d'ajout d'équipe
   const [teamName, setTeamName] = useState(''); // Nom de l'équipe
@@ -38,8 +50,15 @@ const TeamsPage = () => {
   const [player2, setPlayer2] = useState(''); // Nom du joueur 2
   const [formError, setFormError] = useState<string | null>(null); // Message d'erreur du formulaire
   const [success, setSuccess] = useState<string | null>(null); // Message de succès
+  
+  // États pour la modification d'équipe
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editTeamName, setEditTeamName] = useState('');
+  const [editPlayer1, setEditPlayer1] = useState('');
+  const [editPlayer2, setEditPlayer2] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fonction de gestion de la soumission du formulaire
+  // Fonction de gestion de la soumission du formulaire d'ajout
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Empêche le rechargement de la page
     setFormError(null); // Réinitialise les messages d'erreur
@@ -76,8 +95,71 @@ const TeamsPage = () => {
     }
   };
   
+  // Fonction pour commencer l'édition d'une équipe
+  const handleEditStart = (team: Team) => {
+    setEditingTeam(team);
+    setEditTeamName(team.name);
+    setEditPlayer1(team.player1);
+    setEditPlayer2(team.player2);
+    setFormError(null);
+    setSuccess(null);
+    setIsModalOpen(true);
+  };
+  
+  // Fonction pour annuler l'édition
+  const handleEditCancel = () => {
+    setEditingTeam(null);
+    setIsModalOpen(false);
+  };
+  
+  // Fonction pour soumettre les modifications
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingTeam) return;
+    
+    // Validation des champs du formulaire
+    if (!editTeamName.trim()) {
+      setFormError('Le nom de l\'équipe est requis');
+      return;
+    }
+    
+    if (!editPlayer1.trim()) {
+      setFormError('Le nom du joueur 1 est requis');
+      return;
+    }
+    
+    if (!editPlayer2.trim()) {
+      setFormError('Le nom du joueur 2 est requis');
+      return;
+    }
+    
+    try {
+      await updateTeam(editingTeam.id, editTeamName, editPlayer1, editPlayer2);
+      setSuccess('Équipe modifiée avec succès !');
+      setEditingTeam(null);
+      setIsModalOpen(false);
+    } catch (err) {
+      setFormError('Erreur lors de la modification de l\'équipe');
+    }
+  };
+  
+  // Fonction pour supprimer une équipe
+  const handleDelete = async (teamId: number) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette équipe ?')) {
+      return;
+    }
+    
+    try {
+      await deleteTeam(teamId);
+      setSuccess('Équipe supprimée avec succès !');
+    } catch (err: any) {
+      setFormError(err.message || 'Erreur lors de la suppression de l\'équipe');
+    }
+  };
+  
   // Affichage pendant le chargement
-  if (loading) {
+  if (loading && teams.length === 0) {
     return (
       <PageContainer>
         <Header>
@@ -166,6 +248,14 @@ const TeamsPage = () => {
                     <PlayerName>{team.player2}</PlayerName>
                   </PlayerItem>
                 </PlayersList>
+                <ActionButtons>
+                  <ActionButton $variant="edit" onClick={() => handleEditStart(team)} title="Modifier">
+                    ✏️
+                  </ActionButton>
+                  <ActionButton $variant="delete" onClick={() => handleDelete(team.id)} title="Supprimer">
+                    🗑️
+                  </ActionButton>
+                </ActionButtons>
               </TeamCard>
             ))}
           </TeamsGrid>
@@ -174,6 +264,60 @@ const TeamsPage = () => {
         <EmptyState>
           Aucune équipe n'a encore été créée. Utilisez le formulaire ci-dessus pour ajouter votre première équipe.
         </EmptyState>
+      )}
+
+      {/* Modale pour l'édition d'équipe */}
+      {isModalOpen && editingTeam && (
+        <ModalOverlay onClick={handleEditCancel}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Modifier l'équipe</ModalTitle>
+              <CloseButton onClick={handleEditCancel}>&times;</CloseButton>
+            </ModalHeader>
+            <ModalForm onSubmit={handleEditSubmit}>
+              {formError && <ErrorMessage>{formError}</ErrorMessage>}
+              
+              <FormGroup>
+                <Label htmlFor={`edit-team-name-${editingTeam.id}`}>Nom de l'équipe</Label>
+                <Input 
+                  id={`edit-team-name-${editingTeam.id}`} 
+                  type="text" 
+                  value={editTeamName} 
+                  onChange={(e) => setEditTeamName(e.target.value)} 
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <Label htmlFor={`edit-player1-${editingTeam.id}`}>Joueur 1</Label>
+                <Input 
+                  id={`edit-player1-${editingTeam.id}`} 
+                  type="text" 
+                  value={editPlayer1} 
+                  onChange={(e) => setEditPlayer1(e.target.value)} 
+                />
+              </FormGroup>
+              
+              <FormGroup>
+                <Label htmlFor={`edit-player2-${editingTeam.id}`}>Joueur 2</Label>
+                <Input 
+                  id={`edit-player2-${editingTeam.id}`} 
+                  type="text" 
+                  value={editPlayer2} 
+                  onChange={(e) => setEditPlayer2(e.target.value)} 
+                />
+              </FormGroup>
+              
+              <ButtonGroup>
+                <CancelButton type="button" onClick={handleEditCancel}>
+                  Annuler
+                </CancelButton>
+                <SubmitButton type="submit" disabled={loading}>
+                  {loading ? 'Enregistrement...' : 'Enregistrer'}
+                </SubmitButton>
+              </ButtonGroup>
+            </ModalForm>
+          </ModalContent>
+        </ModalOverlay>
       )}
     </PageContainer>
   );

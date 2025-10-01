@@ -10,6 +10,8 @@ export interface TeamContextType {
   error: string | null; // Message d'erreur éventuel
   fetchTeams: () => Promise<void>; // Fonction pour récupérer les équipes
   addTeam: (name: string, player1: string, player2: string) => Promise<void>; // Fonction pour ajouter une équipe
+  updateTeam: (id: number, name: string, player1: string, player2: string) => Promise<void>; // Fonction pour modifier une équipe
+  deleteTeam: (id: number) => Promise<void>; // Fonction pour supprimer une équipe
 }
 
 // Création du contexte avec des valeurs par défaut
@@ -20,4 +22,6 @@ export const TeamContext = createContext<TeamContextType>({
   error: null,
   fetchTeams: async () => {}, // Fonction vide par défaut
   addTeam: async () => {}, // Fonction vide par défaut
+  updateTeam: async () => {}, // Fonction vide par défaut
+  deleteTeam: async () => {}, // Fonction vide par défaut
 });
