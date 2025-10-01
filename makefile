@@ -44,6 +44,10 @@ logs-mysql:
 fixtures:
 	docker-compose exec backend npm run seed
 
+# Analyser un tournoi terminé
+analyze-end-tournament:
+	docker-compose exec backend npx ts-node src/scripts/analyze-tournament.ts
+
 # Entrer dans le conteneur backend
 shell-backend:
 	docker-compose exec backend sh

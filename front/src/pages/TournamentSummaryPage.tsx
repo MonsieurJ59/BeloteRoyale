@@ -103,6 +103,8 @@ const TournamentSummaryPage: React.FC = () => {
   const [showPairsModal, setShowPairsModal] = useState<boolean>(false);
   const [modalPairs, setModalPairs] = useState<Array<{ teamA: Team; teamB: Team }>>([]);
   const [modalTitle, setModalTitle] = useState<string>('');
+  // Nouvel état pour la modal des équipes inscrites
+  const [showTeamsModal, setShowTeamsModal] = useState<boolean>(false);
 
   // Chargement des données du tournoi
   useEffect(() => {
@@ -413,6 +415,11 @@ const TournamentSummaryPage: React.FC = () => {
     }
   };
 
+  // Fonction pour afficher la modal des équipes inscrites
+  const showRegisteredTeamsModal = () => {
+    setShowTeamsModal(true);
+  };
+
   const handleEditMatch = (match: Match) => {
     setEditingMatch(match.id);
     setScoreA(match.score_a || 0);
@@ -531,7 +538,37 @@ const TournamentSummaryPage: React.FC = () => {
           </ModalContainer>
         </ModalOverlay>
       )}
-      
+
+      {/* Modal pour afficher les équipes inscrites */}
+      {showTeamsModal && (
+        <ModalOverlay>
+          <ModalContainer>
+            <ModalHeader>
+              <ModalTitle>Équipes inscrites</ModalTitle>
+              <CloseButton onClick={() => setShowTeamsModal(false)}>×</CloseButton>
+            </ModalHeader>
+            <ModalContent>
+              <PairsList>
+                {registeredTeams.map((team) => (
+                  <PairItem key={team.id}>
+                    <TeamName>{team.name}</TeamName>
+                    <PlayersCell>
+                      <PlayerName>{team.player1}</PlayerName>
+                      <PlayerName>{team.player2}</PlayerName>
+                    </PlayersCell>
+                  </PairItem>
+                ))}
+              </PairsList>
+            </ModalContent>
+            <ModalFooter>
+              <CancelButton onClick={() => setShowTeamsModal(false)}>
+                Fermer
+              </CancelButton>
+            </ModalFooter>
+          </ModalContainer>
+        </ModalOverlay>
+      )}
+
       {/* En-tête du tournoi */}
       <TournamentHeader>
         <TournamentTitle>{tournament.name}</TournamentTitle>
@@ -728,7 +765,7 @@ const TournamentSummaryPage: React.FC = () => {
       <StatsSection>
         <SectionTitle>Statistiques du tournoi</SectionTitle>
         <StatsGrid>
-          <StatCard>
+          <StatCard onClick={showRegisteredTeamsModal} style={{ cursor: 'pointer' }}>
             <StatNumber>{rankings.length}</StatNumber>
             <StatLabel>Équipes inscrites</StatLabel>
           </StatCard>
