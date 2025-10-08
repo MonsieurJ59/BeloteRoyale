@@ -4,6 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "test:e2e": "jest tests/e2e",
+    "test:e2e:dev": "jest tests/e2e --testPathIgnorePatterns=tournament-flow.test.ts",
+    "test:unit": "jest --testPathIgnorePatterns=tests/e2e",
     "test:watch": "jest --watch",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
