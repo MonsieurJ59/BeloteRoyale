@@ -106,6 +106,11 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
     if (formData.maxPrincipalMatches < 1 || formData.maxPrincipalMatches > 20) {
       newErrors.maxPrincipalMatches = 'Le nombre de matchs principaux doit être entre 1 et 20';
     }
+    
+    // Validation pour exiger au moins 4 équipes
+    if (mode === 'create' && selectedTeamIds.length < 4) {
+      newErrors.teams = 'Au moins 4 équipes sont nécessaires pour créer un tournoi';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -248,6 +253,7 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
                 </TeamList>
               )}
               <HelpText>Sélectionnez les équipes qui participeront à ce tournoi.</HelpText>
+              {errors.teams && <ErrorText>{errors.teams}</ErrorText>}
             </FormGroup>
           )}
 
