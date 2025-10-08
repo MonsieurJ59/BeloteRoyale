@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { Tournament, Team } from '../types/api';
-import { API_URL } from '../config';
+import type { Tournament, Team } from '../../types/api.ts';
+import { API_URL } from '../../config.ts';
 import {
   ModalOverlay,
   ModalContent,
@@ -19,7 +19,7 @@ import {
   SubmitButton,
   TeamList,
   TeamItem
-} from '../styles/TournamentModal.styles.ts';
+} from '../../styles/TournamentModal.styles.ts';
 
 interface TournamentModalProps {
   isOpen: boolean;
