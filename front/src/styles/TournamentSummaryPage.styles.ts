@@ -124,7 +124,7 @@ export const SuggestedList = styled.ul`
 `;
 
 export const CreateMatchesButton = styled.button`
-  display: inline-flex;
+  display: block; 
   align-items: center;
   justify-content: center;
   padding: ${theme.spacing.sm} ${theme.spacing.lg};
@@ -135,6 +135,8 @@ export const CreateMatchesButton = styled.button`
   font-weight: ${theme.typography.fontWeight.medium};
   transition: all ${theme.transitions.fast};
   cursor: pointer;
+  margin: 0 auto; 
+  width: fit-content; 
 
   &:hover {
     background-color: ${theme.colors.primary.light};
