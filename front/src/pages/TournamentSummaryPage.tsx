@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { theme } from '../styles/theme';
 import { API_URL } from '../config';
+import { generateTeamPairsAvoidingPreviousMatchups as generatePairs } from '../utils/tournamentUtils';
 import type { Tournament, Team, Match, TeamTournamentStats, TournamentMatchConfig } from '../types/api';
+import { PairsModal, TeamsModal } from '../components/modals/GeneratorMatchModals';
 import {
   PageContainer,
   LoadingMessage,
@@ -237,66 +239,9 @@ const TournamentSummaryPage: React.FC = () => {
     setRankings(teamRankings);
   };
 
-  // Fonction pour générer des paires d'équipes en évitant les affrontements précédents
+  // Utilisation de la fonction utilitaire pour générer des paires d'équipes
   const generateTeamPairsAvoidingPreviousMatchups = () => {
-    // Créer un ensemble pour suivre les paires d'équipes qui se sont déjà affrontées
-    const previousMatchups = new Set<string>();
-    
-    // Remplir l'ensemble avec les matchs existants
-    matches.forEach(match => {
-      const pairKey1 = `${match.team_a_id}-${match.team_b_id}`;
-      const pairKey2 = `${match.team_b_id}-${match.team_a_id}`;
-      previousMatchups.add(pairKey1);
-      previousMatchups.add(pairKey2);
-    });
-    
-    // Mélanger les équipes pour des affrontements aléatoires
-    const shuffledTeams = [...registeredTeams].sort(() => Math.random() - 0.5);
-    const newPairs: Array<{ teamA: Team; teamB: Team }> = [];
-    const used = new Set<number>();
-    
-    // Première passe: essayer de créer des paires sans répéter les affrontements
-    for (let i = 0; i < shuffledTeams.length; i++) {
-      const teamA = shuffledTeams[i];
-      if (used.has(teamA.id)) continue;
-      
-      // Chercher un adversaire qui n'a pas encore affronté cette équipe
-      let foundOpponent = false;
-      for (let j = 0; j < shuffledTeams.length; j++) {
-        if (i === j) continue;
-        
-        const teamB = shuffledTeams[j];
-        if (used.has(teamB.id)) continue;
-        
-        const pairKey1 = `${teamA.id}-${teamB.id}`;
-        const pairKey2 = `${teamB.id}-${teamA.id}`;
-        
-        // Vérifier si ces équipes ne se sont pas déjà affrontées
-        if (!previousMatchups.has(pairKey1) && !previousMatchups.has(pairKey2)) {
-          newPairs.push({ teamA, teamB });
-          used.add(teamA.id);
-          used.add(teamB.id);
-          foundOpponent = true;
-          break;
-        }
-      }
-      
-      // Si aucun adversaire sans match précédent n'a été trouvé, on continue
-      if (!foundOpponent) continue;
-    }
-    
-    // Deuxième passe: pour les équipes restantes, créer des paires même si elles se sont déjà affrontées
-    const remainingTeams = shuffledTeams.filter(team => !used.has(team.id));
-    for (let i = 0; i < remainingTeams.length; i += 2) {
-      if (i + 1 < remainingTeams.length) {
-        newPairs.push({
-          teamA: remainingTeams[i],
-          teamB: remainingTeams[i + 1]
-        });
-      }
-    }
-    
-    return newPairs;
+    return generatePairs(registeredTeams, matches);
   };
 
   // Fonction pour préparer les données pour la modal avec les paires proposées
@@ -658,106 +603,24 @@ const TournamentSummaryPage: React.FC = () => {
 
   return (
     <PageContainer>
-      {/* Modal pour afficher les paires proposées */}
-      {showPairsModal && (
-        <ModalOverlay>
-          <ModalContainer>
-            <ModalHeader>
-              <ModalTitle>{modalTitle}</ModalTitle>
-              <CloseButton onClick={() => setShowPairsModal(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalContent>
-              <PairsList>
-                {modalPairs.map((p, idx) => (
-                  <PairItem key={`modal-${p.teamA.id}-${p.teamB.id}-${idx}`}>
-                    <select 
-                      value={p.teamA.id} 
-                      onChange={(e) => {
-                        const selectedTeam = registeredTeams.find(t => t.id === parseInt(e.target.value));
-                        if (selectedTeam) {
-                          const newPairs = [...modalPairs];
-                          newPairs[idx] = { ...newPairs[idx], teamA: selectedTeam };
-                          setModalPairs(newPairs);
-                        }
-                      }}
-                      style={{ padding: '5px', marginRight: '10px' }}
-                    >
-                      {registeredTeams.map(team => (
-                        <option key={`option-a-${team.id}`} value={team.id}>{team.name}</option>
-                      ))}
-                    </select>
-                    vs
-                    <select 
-                      value={p.teamB.id} 
-                      onChange={(e) => {
-                        const selectedTeam = registeredTeams.find(t => t.id === parseInt(e.target.value));
-                        if (selectedTeam) {
-                          const newPairs = [...modalPairs];
-                          newPairs[idx] = { ...newPairs[idx], teamB: selectedTeam };
-                          setModalPairs(newPairs);
-                        }
-                      }}
-                      style={{ padding: '5px', marginLeft: '10px' }}
-                    >
-                      {registeredTeams.map(team => (
-                        <option key={`option-b-${team.id}`} value={team.id}>{team.name}</option>
-                      ))}
-                    </select>
-                  </PairItem>
-                ))}
-              </PairsList>
-              <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                <button 
-                  onClick={() => {
-                    const newPairs = generateTeamPairsAvoidingPreviousMatchups();
-                    setModalPairs(newPairs);
-                  }}
-                >
-                  Relancer l'association aléatoire
-                </button>
-              </div>
-            </ModalContent>
-            <ModalFooter>
-              <CreateMatchesButton onClick={validateAndCreateMatches}>
-                Valider et créer ces matchs
-              </CreateMatchesButton>
-              <CancelButton onClick={() => setShowPairsModal(false)}>
-                Annuler
-              </CancelButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalOverlay>
-      )}
+      {/* Modal pour afficher et modifier les paires proposées */}
+      <PairsModal
+        showModal={showPairsModal}
+        modalTitle={modalTitle}
+        modalPairs={modalPairs}
+        registeredTeams={registeredTeams}
+        onClose={() => setShowPairsModal(false)}
+        onValidate={validateAndCreateMatches}
+        setModalPairs={setModalPairs}
+        generateTeamPairsAvoidingPreviousMatchups={generateTeamPairsAvoidingPreviousMatchups}
+      />
 
       {/* Modal pour afficher les équipes inscrites */}
-      {showTeamsModal && (
-        <ModalOverlay>
-          <ModalContainer>
-            <ModalHeader>
-              <ModalTitle>Équipes inscrites</ModalTitle>
-              <CloseButton onClick={() => setShowTeamsModal(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalContent>
-              <PairsList>
-                {registeredTeams.map((team) => (
-                  <PairItem key={team.id}>
-                    <TeamName>{team.name}</TeamName>
-                    <PlayersCell>
-                      <PlayerName>{team.player1}</PlayerName>
-                      <PlayerName>{team.player2}</PlayerName>
-                    </PlayersCell>
-                  </PairItem>
-                ))}
-              </PairsList>
-            </ModalContent>
-            <ModalFooter>
-              <CancelButton onClick={() => setShowTeamsModal(false)}>
-                Fermer
-              </CancelButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalOverlay>
-      )}
+      <TeamsModal
+        showModal={showTeamsModal}
+        registeredTeams={registeredTeams}
+        onClose={() => setShowTeamsModal(false)}
+      />
 
       {/* En-tête du tournoi */}
       <TournamentHeader>
