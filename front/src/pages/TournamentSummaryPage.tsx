@@ -564,10 +564,70 @@ const TournamentSummaryPage: React.FC = () => {
               <PairsList>
                 {modalPairs.map((p, idx) => (
                   <PairItem key={`modal-${p.teamA.id}-${p.teamB.id}-${idx}`}>
-                    <TeamName>{p.teamA.name}</TeamName> vs <TeamName>{p.teamB.name}</TeamName>
+                    <select 
+                      value={p.teamA.id} 
+                      onChange={(e) => {
+                        const selectedTeam = registeredTeams.find(t => t.id === parseInt(e.target.value));
+                        if (selectedTeam) {
+                          const newPairs = [...modalPairs];
+                          newPairs[idx] = { ...newPairs[idx], teamA: selectedTeam };
+                          setModalPairs(newPairs);
+                        }
+                      }}
+                      style={{ padding: '5px', marginRight: '10px' }}
+                    >
+                      {registeredTeams.map(team => (
+                        <option key={`option-a-${team.id}`} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                    vs
+                    <select 
+                      value={p.teamB.id} 
+                      onChange={(e) => {
+                        const selectedTeam = registeredTeams.find(t => t.id === parseInt(e.target.value));
+                        if (selectedTeam) {
+                          const newPairs = [...modalPairs];
+                          newPairs[idx] = { ...newPairs[idx], teamB: selectedTeam };
+                          setModalPairs(newPairs);
+                        }
+                      }}
+                      style={{ padding: '5px', marginLeft: '10px' }}
+                    >
+                      {registeredTeams.map(team => (
+                        <option key={`option-b-${team.id}`} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
                   </PairItem>
                 ))}
               </PairsList>
+              <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                <button 
+                  onClick={() => {
+                    // Réutiliser la fonction qui génère les paires aléatoires
+                    const shuffledTeams = [...registeredTeams].sort(() => Math.random() - 0.5);
+                    const newPairs = [];
+                    for (let i = 0; i < shuffledTeams.length; i += 2) {
+                      if (i + 1 < shuffledTeams.length) {
+                        newPairs.push({
+                          teamA: shuffledTeams[i],
+                          teamB: shuffledTeams[i + 1]
+                        });
+                      }
+                    }
+                    setModalPairs(newPairs);
+                  }}
+                  style={{ 
+                    padding: '8px 15px',
+                    backgroundColor: theme.colors.secondary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Relancer l'association aléatoire
+                </button>
+              </div>
             </ModalContent>
             <ModalFooter>
               <CreateMatchesButton onClick={validateAndCreateMatches}>
@@ -898,9 +958,11 @@ const TournamentSummaryPage: React.FC = () => {
                             </UpdateScoreButton>
                           ) : (
                             <>
-                              <StatusBadgeMatch $status={match.winner_id ? 'completed' : 'pending'}>
-                                {match.winner_id ? 'Terminé' : 'En attente'}
-                              </StatusBadgeMatch>
+                              {match.winner_id && (
+                                <StatusBadgeMatch $status="completed">
+                                  Terminé
+                                </StatusBadgeMatch>
+                              )}
                               {tournament?.status === 'in_progress' && !match.winner_id && (
                                 <EditScoreButton onClick={() => handleEditMatch(match)}>
                                   Saisir score
