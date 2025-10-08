@@ -105,6 +105,10 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       
       // Mettre à jour la liste des tournois
       setTournaments(prev => [...prev, formattedTournament]);
+      
+      // Recharger la page
+      window.location.reload();
+      
       return formattedTournament;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du tournoi';
@@ -139,6 +143,10 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       };
       
       setTournaments(prev => prev.map(t => t.id === id ? formattedTournament : t));
+      
+      // Recharger la page
+      window.location.reload();
+      
       return formattedTournament;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la modification du tournoi';
@@ -162,6 +170,10 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       }
       
       setTournaments(prev => prev.filter(t => t.id !== id));
+      
+      // Recharger la page
+      window.location.reload();
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression du tournoi';
       setError(errorMessage);

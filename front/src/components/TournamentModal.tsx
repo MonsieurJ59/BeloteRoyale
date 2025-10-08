@@ -128,10 +128,19 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
       { id: 0, tournament_id: 0, match_type: 'principal_1' as const, is_enabled: true, max_matches: formData.maxPrincipalMatches }
     ];
 
+    // Déterminer automatiquement le statut en fonction de la date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tournamentDate = new Date(formData.date);
+    tournamentDate.setHours(0, 0, 0, 0);
+    
+    // Si la date est aujourd'hui, le statut est "in_progress", sinon c'est "upcoming"
+    const autoStatus = tournamentDate.getTime() === today.getTime() ? 'in_progress' : 'upcoming';
+
     const tournamentData = {
       name: formData.name.trim(),
       date: new Date(formData.date),
-      status: formData.status,
+      status: autoStatus, // Toujours utiliser le statut automatique
       match_configs: mode === 'create' ? matchConfigs : undefined,
       selected_team_ids: mode === 'create' ? selectedTeamIds : undefined
     };
@@ -192,20 +201,6 @@ const TournamentModal: React.FC<TournamentModalProps> = ({
               $hasError={!!errors.date}
             />
             {errors.date && <ErrorText>{errors.date}</ErrorText>}
-          </FormGroup>
-
-          <FormGroup>
-            <Label htmlFor="status">Statut</Label>
-            <Select
-              id="status"
-              name="status"
-              value={formData.status}
-              onChange={handleInputChange}
-            >
-              <option value="upcoming">À venir</option>
-              <option value="in_progress">En cours</option>
-              <option value="completed">Terminé</option>
-            </Select>
           </FormGroup>
 
           {mode === 'create' && (
