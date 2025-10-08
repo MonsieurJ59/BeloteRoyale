@@ -164,9 +164,9 @@ export const TournamentCard = styled.div`
 
 // Action Buttons
 export const ActionButtons = styled.div`
-  position: absolute;
-  top: ${theme.spacing.lg};
-  left: ${theme.spacing.lg};
+  position: relative;
+  top: 0;
+  left: 0;
   display: flex;
   gap: ${theme.spacing.xs};
   z-index: 1;
