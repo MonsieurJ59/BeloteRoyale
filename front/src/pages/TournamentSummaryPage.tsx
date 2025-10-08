@@ -237,10 +237,21 @@ const TournamentSummaryPage: React.FC = () => {
     setRankings(teamRankings);
   };
 
-  // Fonction pour afficher la modal avec les paires proposées
+  // Fonction pour préparer les données pour la modal avec les paires proposées
   const showPairsInModal = (pairs: Array<{ teamA: Team; teamB: Team }>, title: string) => {
     setModalPairs(pairs);
     setModalTitle(title);
+    // Ne pas afficher automatiquement la modale
+    // setShowPairsModal(true); // Cette ligne est commentée pour éviter l'affichage automatique
+  };
+
+  // Fonction pour afficher la modale manuellement
+  const displayPairsModal = () => {
+    setShowPairsModal(true);
+  };
+
+  // Nouvelle fonction pour afficher la modale lorsque l'utilisateur clique sur le bouton
+  const handleShowPairsModal = () => {
     setShowPairsModal(true);
   };
 
@@ -249,6 +260,34 @@ const TournamentSummaryPage: React.FC = () => {
     setNextRoundPairs(modalPairs);
     setShowPairsModal(false);
     createSuggestedMainMatches();
+  };
+
+  // Fonction pour suggérer des matchs préliminaires
+  const suggestPreliminaryMatches = () => {
+    if (registeredTeams && registeredTeams.length >= 2) {
+      // Créer des paires pour les préliminaires
+      const prelimPairs: Array<{ teamA: Team; teamB: Team }> = [];
+      const used = new Set<number>();
+      
+      for (let i = 0; i < registeredTeams.length; i++) {
+        const team = registeredTeams[i];
+        if (used.has(team.id)) continue;
+        
+        // Chercher un adversaire qui n'est pas encore utilisé
+        const opponent = registeredTeams.find(t => !used.has(t.id) && t.id !== team.id);
+        
+        if (opponent) {
+          prelimPairs.push({ teamA: team, teamB: opponent });
+          used.add(team.id);
+          used.add(opponent.id);
+        }
+      }
+      
+      // Préparer les paires dans la modal
+      showPairsInModal(prelimPairs, "Affrontements préliminaires proposés");
+    } else {
+      setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
+    }
   };
 
   // Fonction pour obtenir les types de matchs uniques et triés
@@ -297,7 +336,8 @@ const TournamentSummaryPage: React.FC = () => {
 
     const teamsMissingPrelim = teams.filter(t => (prelimByTeamCount.get(t.id) || 0) === 0);
     
-    // S'il y a des équipes sans match préliminaire, proposer des paires pour les préliminaires
+    // S'il y a des équipes sans match préliminaire, préparer des paires pour les préliminaires
+    // mais ne pas afficher automatiquement la modale
     if (teamsMissingPrelim.length > 0) {
       // Créer des paires pour les préliminaires
       const prelimPairs: Array<{ teamA: Team; teamB: Team }> = [];
@@ -316,8 +356,10 @@ const TournamentSummaryPage: React.FC = () => {
         }
       }
       
-      // Afficher les paires dans la modal au lieu d'activer l'édition
+      // Préparer les paires pour la modal sans l'afficher automatiquement
       showPairsInModal(prelimPairs, "Affrontements préliminaires proposés");
+      // Supprimer cette ligne pour éviter l'affichage automatique
+      // displayPairsModal();
     } else {
       setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
     }
@@ -633,8 +675,10 @@ const TournamentSummaryPage: React.FC = () => {
                         }
                       }
                       
-                      // Afficher les paires dans la modal au lieu d'activer l'édition
+                      // Préparer les données pour la modale
                       showPairsInModal(prelimPairs, "Affrontements préliminaires proposés");
+                      // Afficher la modale manuellement
+                      displayPairsModal();
                     } else {
                       setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
                     }
@@ -737,8 +781,10 @@ const TournamentSummaryPage: React.FC = () => {
                                 }
                               }
                               
-                              // Afficher les paires dans la modal au lieu d'activer l'édition
+                              // Préparer les paires pour la modal
                               showPairsInModal(pairs, `Affrontements de la manche ${nextRound} proposés`);
+                              // Afficher la modale
+                              displayPairsModal();
                             } else {
                               setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
                             }
