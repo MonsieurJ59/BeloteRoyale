@@ -75,13 +75,19 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       setLoading(true);
       setError(null);
       
+      // Formater la date au format ISO pour éviter les problèmes de sérialisation
+      const tournamentData = {
+        ...tournament,
+        date: tournament.date instanceof Date ? tournament.date.toISOString().split('T')[0] : tournament.date
+      };
+      
       // Créer le tournoi
       const response = await fetch(`${API_URL}/tournaments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(tournament),
+        body: JSON.stringify(tournamentData),
       });
 
       if (!response.ok) {
@@ -89,21 +95,20 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       }
 
       const newTournament = await response.json();
-
-      // Inscrire les équipes sélectionnées au tournoi
-      if (tournament.selected_team_ids && tournament.selected_team_ids.length > 0) {
-        await Promise.all(
-          tournament.selected_team_ids.map(teamId =>
-            fetch(`${API_URL}/team-tournaments/tournament/${newTournament.id}/teams`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ team_id: teamId }),
-            })
-          )
-        );
-      }
+      
+      // Formater le tournoi avec les dates correctes
+      const formattedTournament = {
+        ...newTournament,
+        date: new Date(newTournament.date),
+        created_at: new Date(newTournament.created_at)
+      };
+      
+      // Mettre à jour la liste des tournois
+      setTournaments(prev => [...prev, formattedTournament]);
+      
+      // Recharger la page
+      window.location.reload();
+      
       return formattedTournament;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du tournoi';
@@ -138,6 +143,10 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       };
       
       setTournaments(prev => prev.map(t => t.id === id ? formattedTournament : t));
+      
+      // Recharger la page
+      window.location.reload();
+      
       return formattedTournament;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la modification du tournoi';
@@ -161,6 +170,10 @@ export const TournamentProvider: React.FC<TournamentProviderProps> = ({ children
       }
       
       setTournaments(prev => prev.filter(t => t.id !== id));
+      
+      // Recharger la page
+      window.location.reload();
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression du tournoi';
       setError(errorMessage);

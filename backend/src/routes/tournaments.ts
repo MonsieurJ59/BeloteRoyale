@@ -35,7 +35,7 @@ router.get("/:id", async (req, res) => {
 // POST create tournament
 router.post("/", async (req, res) => {
   try {
-    const { name, date, status = 'upcoming', match_configs } = req.body as CreateTournamentDto;
+    const { name, date, status = 'upcoming', match_configs, selected_team_ids } = req.body;
     
     if (!name) return res.status(400).json({ error: "Name is required" });
     if (!date) return res.status(400).json({ error: "Date is required" });
@@ -56,30 +56,60 @@ router.post("/", async (req, res) => {
       }
     }
 
-    // Create tournament
-    const [result] = await pool.query(
-      "INSERT INTO tournaments (name, date, status) VALUES (?, ?, ?)",
-      [name, date, status]
-    );
+    const connection = await pool.getConnection();
     
-    const tournamentId = (result as any).insertId;
-    
-    // Create default match configs if none provided
-    const configs = match_configs || [
-      { tournament_id: tournamentId, match_type: 'preliminaires', is_enabled: true, max_matches: 10 },
-      { tournament_id: tournamentId, match_type: 'principal_1', is_enabled: true, max_matches: 5 }
-    ];
-    
-    // Insert match configs (ensure tournament_id is correct)
-    for (const config of configs) {
-      await pool.query(
-        "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
-        [tournamentId, config.match_type, config.is_enabled, config.max_matches]
+    try {
+      await connection.beginTransaction();
+      
+      // Create tournament
+      const [result] = await connection.query(
+        "INSERT INTO tournaments (name, date, status) VALUES (?, ?, ?)",
+        [name, date, status]
       );
+      
+      const tournamentId = (result as any).insertId;
+      
+      // Create default match configs if none provided
+      const configs = match_configs || [
+        { tournament_id: tournamentId, match_type: 'preliminaires', is_enabled: true, max_matches: 10 },
+        { tournament_id: tournamentId, match_type: 'principal_1', is_enabled: true, max_matches: 5 }
+      ];
+      
+      // Insert match configs (ensure tournament_id is correct)
+      for (const config of configs) {
+        await connection.query(
+          "INSERT INTO tournament_match_configs (tournament_id, match_type, is_enabled, max_matches) VALUES (?, ?, ?, ?)",
+          [tournamentId, config.match_type, config.is_enabled, config.max_matches]
+        );
+      }
+      
+      // Enroll selected teams if provided
+      if (selected_team_ids && Array.isArray(selected_team_ids) && selected_team_ids.length > 0) {
+        for (const teamId of selected_team_ids) {
+          // Insert into team_tournament table
+          await connection.query(
+            "INSERT INTO team_tournament (team_id, tournament_id, registration_date) VALUES (?, ?, NOW())",
+            [teamId, tournamentId]
+          );
+          
+          // Create stats entry for this team in this tournament
+          await connection.query(
+            "INSERT INTO team_tournament_stats (team_id, tournament_id, prelim_points, wins, losses) VALUES (?, ?, 0, 0, 0)",
+            [teamId, tournamentId]
+          );
+        }
+      }
+      
+      await connection.commit();
+      
+      const [tournaments] = await pool.query("SELECT * FROM tournaments WHERE id = ?", [tournamentId]);
+      res.status(201).json((tournaments as any[])[0]);
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
-    
-    const [tournaments] = await pool.query("SELECT * FROM tournaments WHERE id = ?", [tournamentId]);
-    res.status(201).json((tournaments as any[])[0]);
   } catch (error) {
     console.error("Error creating tournament:", error);
     res.status(500).json({ error: "Internal server error" });
