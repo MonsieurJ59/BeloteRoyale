@@ -7,7 +7,7 @@ import teamTournamentStatsRouter from "./routes/teamTournamentStats";
 import teamTournamentsRouter from "./routes/teamTournaments";
 import tournamentMatchConfigsRouter from "./routes/tournamentMatchConfigs";
 
-const app = express();
+export const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -22,7 +22,9 @@ app.use("/team-tournament-stats", teamTournamentStatsRouter);
 app.use("/team-tournaments", teamTournamentsRouter);
 app.use("/tournament-match-configs", tournamentMatchConfigsRouter);
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`API running on port ${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`API running on port ${PORT}`);
+  });
+}
