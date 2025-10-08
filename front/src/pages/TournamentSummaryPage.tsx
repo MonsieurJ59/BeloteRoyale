@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { theme } from '../styles/theme';
 import { API_URL } from '../config';
+import { generateTeamPairsAvoidingPreviousMatchups as generatePairs } from '../utils/tournamentUtils';
 import type { Tournament, Team, Match, TeamTournamentStats, TournamentMatchConfig } from '../types/api';
+import { PairsModal, TeamsModal } from '../components/modals/GeneratorMatchModals';
 import {
   PageContainer,
   LoadingMessage,
@@ -237,6 +239,11 @@ const TournamentSummaryPage: React.FC = () => {
     setRankings(teamRankings);
   };
 
+  // Utilisation de la fonction utilitaire pour générer des paires d'équipes
+  const generateTeamPairsAvoidingPreviousMatchups = () => {
+    return generatePairs(registeredTeams, matches);
+  };
+
   // Fonction pour préparer les données pour la modal avec les paires proposées
   const showPairsInModal = (pairs: Array<{ teamA: Team; teamB: Team }>, title: string) => {
     setModalPairs(pairs);
@@ -247,6 +254,9 @@ const TournamentSummaryPage: React.FC = () => {
 
   // Fonction pour afficher la modale manuellement
   const displayPairsModal = () => {
+    // Générer des paires optimisées dès l'ouverture de la modale
+    const optimizedPairs = generateTeamPairsAvoidingPreviousMatchups();
+    setModalPairs(optimizedPairs);
     setShowPairsModal(true);
   };
 
@@ -265,26 +275,67 @@ const TournamentSummaryPage: React.FC = () => {
   // Fonction pour suggérer des matchs préliminaires
   const suggestPreliminaryMatches = () => {
     if (registeredTeams && registeredTeams.length >= 2) {
-      // Créer des paires pour les préliminaires
+      // Créer un ensemble pour suivre les paires d'équipes qui se sont déjà affrontées
+      const previousMatchups = new Set<string>();
+      
+      // Remplir l'ensemble avec les matchs existants
+      matches.forEach(match => {
+        const pairKey1 = `${match.team_a_id}-${match.team_b_id}`;
+        const pairKey2 = `${match.team_b_id}-${match.team_a_id}`;
+        previousMatchups.add(pairKey1);
+        previousMatchups.add(pairKey2);
+      });
+      
+      // Mélanger les équipes pour des affrontements aléatoires
+      const shuffledTeams = [...registeredTeams].sort(() => Math.random() - 0.5);
       const prelimPairs: Array<{ teamA: Team; teamB: Team }> = [];
       const used = new Set<number>();
       
-      for (let i = 0; i < registeredTeams.length; i++) {
-        const team = registeredTeams[i];
-        if (used.has(team.id)) continue;
+      // Première passe: essayer de créer des paires sans répéter les affrontements
+      for (let i = 0; i < shuffledTeams.length; i++) {
+        const teamA = shuffledTeams[i];
+        if (used.has(teamA.id)) continue;
         
-        // Chercher un adversaire qui n'est pas encore utilisé
-        const opponent = registeredTeams.find(t => !used.has(t.id) && t.id !== team.id);
+        // Chercher un adversaire qui n'a pas encore affronté cette équipe
+        let foundOpponent = false;
+        for (let j = 0; j < shuffledTeams.length; j++) {
+          if (i === j) continue;
+          
+          const teamB = shuffledTeams[j];
+          if (used.has(teamB.id)) continue;
+          
+          const pairKey1 = `${teamA.id}-${teamB.id}`;
+          const pairKey2 = `${teamB.id}-${teamA.id}`;
+          
+          // Vérifier si ces équipes ne se sont pas déjà affrontées
+          if (!previousMatchups.has(pairKey1) && !previousMatchups.has(pairKey2)) {
+            prelimPairs.push({ teamA, teamB });
+            used.add(teamA.id);
+            used.add(teamB.id);
+            foundOpponent = true;
+            break;
+          }
+        }
         
-        if (opponent) {
-          prelimPairs.push({ teamA: team, teamB: opponent });
-          used.add(team.id);
-          used.add(opponent.id);
+        // Si aucun adversaire sans match précédent n'a été trouvé, on continue
+        if (!foundOpponent) continue;
+      }
+      
+      // Deuxième passe: pour les équipes restantes, créer des paires même si elles se sont déjà affrontées
+      const remainingTeams = shuffledTeams.filter(team => !used.has(team.id));
+      for (let i = 0; i < remainingTeams.length; i += 2) {
+        if (i + 1 < remainingTeams.length) {
+          prelimPairs.push({
+            teamA: remainingTeams[i],
+            teamB: remainingTeams[i + 1]
+          });
         }
       }
       
-      // Préparer les paires dans la modal
+      // Préparer les paires pour la modal
       showPairsInModal(prelimPairs, "Affrontements préliminaires proposés");
+      // Afficher la modal
+      displayPairsModal();
     } else {
       setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
     }
@@ -552,64 +603,24 @@ const TournamentSummaryPage: React.FC = () => {
 
   return (
     <PageContainer>
-      {/* Modal pour afficher les paires proposées */}
-      {showPairsModal && (
-        <ModalOverlay>
-          <ModalContainer>
-            <ModalHeader>
-              <ModalTitle>{modalTitle}</ModalTitle>
-              <CloseButton onClick={() => setShowPairsModal(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalContent>
-              <PairsList>
-                {modalPairs.map((p, idx) => (
-                  <PairItem key={`modal-${p.teamA.id}-${p.teamB.id}-${idx}`}>
-                    <TeamName>{p.teamA.name}</TeamName> vs <TeamName>{p.teamB.name}</TeamName>
-                  </PairItem>
-                ))}
-              </PairsList>
-            </ModalContent>
-            <ModalFooter>
-              <CreateMatchesButton onClick={validateAndCreateMatches}>
-                Valider et créer ces matchs
-              </CreateMatchesButton>
-              <CancelButton onClick={() => setShowPairsModal(false)}>
-                Annuler
-              </CancelButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalOverlay>
-      )}
+      {/* Modal pour afficher et modifier les paires proposées */}
+      <PairsModal
+        showModal={showPairsModal}
+        modalTitle={modalTitle}
+        modalPairs={modalPairs}
+        registeredTeams={registeredTeams}
+        onClose={() => setShowPairsModal(false)}
+        onValidate={validateAndCreateMatches}
+        setModalPairs={setModalPairs}
+        generateTeamPairsAvoidingPreviousMatchups={generateTeamPairsAvoidingPreviousMatchups}
+      />
 
       {/* Modal pour afficher les équipes inscrites */}
-      {showTeamsModal && (
-        <ModalOverlay>
-          <ModalContainer>
-            <ModalHeader>
-              <ModalTitle>Équipes inscrites</ModalTitle>
-              <CloseButton onClick={() => setShowTeamsModal(false)}>×</CloseButton>
-            </ModalHeader>
-            <ModalContent>
-              <PairsList>
-                {registeredTeams.map((team) => (
-                  <PairItem key={team.id}>
-                    <TeamName>{team.name}</TeamName>
-                    <PlayersCell>
-                      <PlayerName>{team.player1}</PlayerName>
-                      <PlayerName>{team.player2}</PlayerName>
-                    </PlayersCell>
-                  </PairItem>
-                ))}
-              </PairsList>
-            </ModalContent>
-            <ModalFooter>
-              <CancelButton onClick={() => setShowTeamsModal(false)}>
-                Fermer
-              </CancelButton>
-            </ModalFooter>
-          </ModalContainer>
-        </ModalOverlay>
-      )}
+      <TeamsModal
+        showModal={showTeamsModal}
+        registeredTeams={registeredTeams}
+        onClose={() => setShowTeamsModal(false)}
+      />
 
       {/* En-tête du tournoi */}
       <TournamentHeader>
@@ -657,21 +668,63 @@ const TournamentSummaryPage: React.FC = () => {
                 <ButtonGroup>
                   <CreateMatchesButton onClick={() => {
                     if (registeredTeams && registeredTeams.length >= 2) {
-                      // Créer des paires pour les préliminaires
+                      // Créer un ensemble pour suivre les paires d'équipes qui se sont déjà affrontées
+                      const previousMatchups = new Set<string>();
+                      
+                      // Remplir l'ensemble avec les matchs existants
+                      matches.forEach(match => {
+                        const pairKey1 = `${match.team_a_id}-${match.team_b_id}`;
+                        const pairKey2 = `${match.team_b_id}-${match.team_a_id}`;
+                        previousMatchups.add(pairKey1);
+                        previousMatchups.add(pairKey2);
+                      });
+                      
+                      // Mélanger les équipes pour des affrontements aléatoires
+                      const shuffledTeams = [...registeredTeams].sort(() => Math.random() - 0.5);
                       const prelimPairs: Array<{ teamA: Team; teamB: Team }> = [];
                       const used = new Set<number>();
                       
-                      for (let i = 0; i < registeredTeams.length; i++) {
-                        const team = registeredTeams[i];
-                        if (used.has(team.id)) continue;
+                      // Première passe: essayer de créer des paires sans répéter les affrontements
+                      for (let i = 0; i < shuffledTeams.length; i++) {
+                        const teamA = shuffledTeams[i];
+                        if (used.has(teamA.id)) continue;
                         
-                        // Chercher un adversaire qui n'est pas encore utilisé
-                        const opponent = registeredTeams.find(t => !used.has(t.id) && t.id !== team.id);
+                        // Chercher un adversaire qui n'a pas encore affronté cette équipe
+                        let foundOpponent = false;
+                        for (let j = 0; j < shuffledTeams.length; j++) {
+                          if (i === j) continue;
+                          
+                          const teamB = shuffledTeams[j];
+                          if (used.has(teamB.id)) continue;
+                          
+                          const pairKey1 = `${teamA.id}-${teamB.id}`;
+                          const pairKey2 = `${teamB.id}-${teamA.id}`;
+                          
+                          // Vérifier si ces équipes ne se sont pas déjà affrontées
+                          if (!previousMatchups.has(pairKey1) && !previousMatchups.has(pairKey2)) {
+                            prelimPairs.push({ teamA, teamB });
+                            used.add(teamA.id);
+                            used.add(teamB.id);
+                            foundOpponent = true;
+                            break;
+                          }
+                        }
                         
-                        if (opponent) {
-                          prelimPairs.push({ teamA: team, teamB: opponent });
-                          used.add(team.id);
-                          used.add(opponent.id);
+                        // Si aucun adversaire sans match précédent n'a été trouvé, on continue
+                        if (!foundOpponent) continue;
+                        
+                        // Si aucun adversaire sans match précédent n'a été trouvé, on continue
+                        if (!foundOpponent) continue;
+                      }
+                      
+                      // Deuxième passe: pour les équipes restantes, créer des paires même si elles se sont déjà affrontées
+                      const remainingTeams = shuffledTeams.filter(team => !used.has(team.id));
+                      for (let i = 0; i < remainingTeams.length; i += 2) {
+                        if (i + 1 < remainingTeams.length) {
+                          prelimPairs.push({
+                            teamA: remainingTeams[i],
+                            teamB: remainingTeams[i + 1]
+                          });
                         }
                       }
                       
@@ -898,9 +951,11 @@ const TournamentSummaryPage: React.FC = () => {
                             </UpdateScoreButton>
                           ) : (
                             <>
-                              <StatusBadgeMatch $status={match.winner_id ? 'completed' : 'pending'}>
-                                {match.winner_id ? 'Terminé' : 'En attente'}
-                              </StatusBadgeMatch>
+                              {match.winner_id && (
+                                <StatusBadgeMatch $status="completed">
+                                  Terminé
+                                </StatusBadgeMatch>
+                              )}
                               {tournament?.status === 'in_progress' && !match.winner_id && (
                                 <EditScoreButton onClick={() => handleEditMatch(match)}>
                                   Saisir score
