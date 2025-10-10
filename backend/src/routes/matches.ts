@@ -394,4 +394,90 @@ router.post("/tournament/:tournamentId/generate/main", async (req, res) => {
   }
 });
 
+// DELETE all preliminary matches for a tournament
+router.delete("/tournament/:tournamentId/delete/preliminaires", async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id, status FROM tournaments WHERE id = ?", [tournamentId]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    
+    const tournament = (tournaments as any[])[0];
+    if (tournament.status !== 'in_progress') {
+      return res.status(400).json({ error: "Tournament must be in progress to delete matches" });
+    }
+    
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      // Delete all preliminary matches
+      await connection.query(
+        "DELETE FROM matches WHERE tournament_id = ? AND match_type = 'preliminaires'", 
+        [tournamentId]
+      );
+      
+      // Reset preliminary points for all teams in this tournament
+      await connection.query(
+        "UPDATE team_tournament_stats SET prelim_points = 0 WHERE tournament_id = ?", 
+        [tournamentId]
+      );
+      
+      await connection.commit();
+      res.status(200).json({ message: "Preliminary matches deleted successfully" });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error("Error deleting preliminary matches:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE all principal matches for a specific round in a tournament
+router.delete("/tournament/:tournamentId/delete/principal/:roundNumber", async (req, res) => {
+  try {
+    const { tournamentId, roundNumber } = req.params;
+    
+    // Validate tournament exists
+    const [tournaments] = await pool.query("SELECT id, status FROM tournaments WHERE id = ?", [tournamentId]);
+    if ((tournaments as any[]).length === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+    
+    const tournament = (tournaments as any[])[0];
+    if (tournament.status !== 'in_progress') {
+      return res.status(400).json({ error: "Tournament must be in progress to delete matches" });
+    }
+    
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      
+      // Delete all matches for the specified principal round
+      await connection.query(
+        "DELETE FROM matches WHERE tournament_id = ? AND match_type = ?", 
+        [tournamentId, `principal_${roundNumber}`]
+      );
+      
+      await connection.commit();
+      res.status(200).json({ message: `Principal round ${roundNumber} matches deleted successfully` });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error("Error deleting principal matches:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

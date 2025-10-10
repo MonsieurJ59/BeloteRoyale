@@ -645,6 +645,24 @@ export const CompleteTournamentButton = styled(StartTournamentButton)`
   background: linear-gradient(135deg, ${theme.colors.status.warning}, ${theme.colors.status.warning}80);
 `;
 
+export const CancelPhaseButton = styled.button`
+  background: linear-gradient(135deg, ${theme.colors.status.warning}, ${theme.colors.status.error}80);
+  color: ${theme.colors.text.light};
+  border: none;
+  border-radius: ${theme.borderRadius.md};
+  padding: ${theme.spacing.sm} ${theme.spacing.lg};
+  font-size: ${theme.typography.fontSize.sm};
+  font-weight: ${theme.typography.fontWeight.medium};
+  cursor: pointer;
+  transition: all ${theme.transitions.normal};
+  box-shadow: ${theme.shadows.sm};
+  
+  &:hover {
+    background: linear-gradient(135deg, ${theme.colors.status.error}90, ${theme.colors.status.error});
+    box-shadow: ${theme.shadows.md};
+  }
+`;
+
 export const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
