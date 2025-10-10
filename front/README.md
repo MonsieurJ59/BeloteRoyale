@@ -1,78 +1,72 @@
-# Belote Royale - Frontend
 
-Interface utilisateur pour l'application Belote Royale, permettant de gérer des tournois de belote.
+## 📱 Pages principales
 
-## Technologies utilisées
+- **HomePage** - Page d'accueil avec présentation de l'application
+- **TeamsPage** - Gestion des équipes (création, modification, suppression)
+- **TournamentsPage** - Liste et création des tournois
+- **TournamentDetailPage** - Détails d'un tournoi spécifique
+- **MatchesPage** - Affichage et gestion des matchs
+- **TournamentSummaryPage** - Résumé et classement d'un tournoi
 
-- React 18
-- TypeScript
-- Vite
-- React Router
-- Styled Components
+## 🧩 Composants clés
 
-## Fonctionnalités
+- **Layout** - Structure globale de l'application
+- **Navbar** - Barre de navigation principale
+- **Sidebar** - Menu latéral pour la navigation contextuelle
+- **Footer** - Pied de page avec informations complémentaires
+- **Modals** - Fenêtres modales pour les formulaires (équipes, tournois, matchs)
 
-- Gestion des tournois (création, visualisation, mise à jour)
-- Gestion des équipes
-- Suivi des matchs et des scores
-- Classements des équipes
+## 🔄 Gestion d'état
 
-## Installation
+L'application utilise le Context API de React pour gérer l'état global :
 
-1. Clonez le dépôt
-2. Installez les dépendances :
+- **TeamContext** - Gestion des équipes
+- **TournamentContext** - Gestion des tournois
+- **MatchContext** - Gestion des matchs
 
-```bash
-npm install
-```
+## 🎨 Styles
 
-3. Copiez le fichier `.env.example` en `.env` et configurez les variables d'environnement :
+Les styles sont gérés avec Styled Components, organisés par composant dans le dossier `styles/`. Un thème global (`theme.ts`) définit les couleurs, typographies et espacements pour une cohérence visuelle.
 
-```bash
-cp .env.example .env
-```
+## 🚀 Fonctionnalités principales
 
-## Développement
+### Gestion des équipes
+- Création d'équipes avec nom et joueurs
+- Modification et suppression d'équipes
+- Affichage de la liste des équipes
 
-Pour lancer le serveur de développement :
+### Gestion des tournois
+- Création de nouveaux tournois
+- Configuration des paramètres du tournoi
+- Inscription des équipes aux tournois
+- Suivi de l'état du tournoi
 
-```bash
-npm run dev
-```
+### Gestion des matchs
+- Génération automatique des matchs préliminaires
+- Création des matchs pour les phases principales
+- Saisie et modification des scores
+- Visualisation des résultats
 
-L'application sera disponible à l'adresse [http://localhost:5173](http://localhost:5173).
+### Classement et statistiques
+- Affichage du classement des équipes
+- Statistiques par équipe et par tournoi
+- Résumé des performances
 
-## Structure du projet
+## 🔧 Scripts disponibles
 
-```
-src/
-├── components/     # Composants réutilisables
-├── context/        # Contextes React pour la gestion d'état
-├── pages/          # Pages de l'application
-├── types/          # Définitions de types TypeScript
-├── utils/          # Fonctions utilitaires
-├── App.tsx         # Composant principal
-└── main.tsx        # Point d'entrée
-```
+- `npm run dev` - Lance le serveur de développement
+- `npm run build` - Compile l'application pour la production
+- `npm run lint` - Vérifie le code avec ESLint
+- `npm run preview` - Prévisualise la version de production
 
-## Communication avec le backend
+## 🌐 Communication avec le backend
 
-L'application communique avec le backend via une API REST. L'URL de base de l'API est configurée dans le fichier `.env` avec la variable `VITE_API_URL`.
+L'application communique avec le backend via des appels API REST. Les types d'API sont définis dans `types/api.ts` pour assurer la cohérence des données.
 
-## Build de production
+## 🧪 Bonnes pratiques
 
-Pour créer une version de production :
-
-```bash
-npm run build
-```
-
-Les fichiers générés seront disponibles dans le dossier `dist/`.
-
-## Docker
-
-L'application peut être exécutée via Docker en utilisant le fichier `docker-compose.yml` à la racine du projet.
-
-```bash
-docker-compose up
-```
+- **TypeScript** pour un typage strict
+- **ESLint** pour la qualité du code
+- **Architecture par composants** pour la réutilisabilité
+- **Styled Components** pour l'isolation des styles
+- **Context API** pour une gestion d'état claire
