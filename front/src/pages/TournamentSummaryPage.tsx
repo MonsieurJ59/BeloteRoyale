@@ -60,6 +60,7 @@ import {
   ScoreInput,
   UpdateScoreButton,
   EditScoreButton,
+  ActionCell,
   ButtonGroup,
   EditPairsButton,
   CancelButton,
@@ -73,7 +74,8 @@ import {
   ModalContent,
   ModalFooter,
   PairsList,
-  PairItem
+  PairItem,
+  CancelPhaseButton
 } from '../styles/TournamentSummaryPage.styles';
 
 // Interface pour les données de classement
@@ -560,6 +562,45 @@ const TournamentSummaryPage: React.FC = () => {
     }
   };
 
+  // Fonction pour annuler une phase et supprimer tous les matchs associés
+  const handleCancelPhase = async (phaseType: string) => {
+    if (!id) return;
+    
+    // Confirmation avant annulation
+    if (!window.confirm(`Êtes-vous sûr de vouloir annuler la phase ${phaseType === 'preliminaires' ? 'préliminaire' : 'principale'} et régénérer les affrontements ? Cette action est irréversible.`)) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Supprimer tous les matchs de la phase concernée
+      let endpoint = '';
+      if (phaseType === 'preliminaires') {
+        endpoint = `${API_URL}/matches/tournament/${id}/delete/preliminaires`;
+      } else if (phaseType.startsWith('principal_')) {
+        // Pour les phases principales, on supprime tous les matchs de la phase actuelle
+        const roundNumber = phaseType.replace('principal_', '');
+        endpoint = `${API_URL}/matches/tournament/${id}/delete/principal/${roundNumber}`;
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors de l'annulation de la phase: ${response.statusText}`);
+      }
+      
+      // Recharger les données du tournoi
+      window.location.reload();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'annulation de la phase');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fonction pour formater la date
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -774,16 +815,30 @@ const TournamentSummaryPage: React.FC = () => {
                     return (
                       <>
                         <ActionMessage>Toutes les manches principales ont été jouées. Vous pouvez terminer le tournoi.</ActionMessage>
-                        <CompleteTournamentButton onClick={validateTournamentStage}>
-                          Terminer le tournoi
-                        </CompleteTournamentButton>
+                        <ButtonGroup>
+                          <CompleteTournamentButton onClick={validateTournamentStage}>
+                            Terminer le tournoi
+                          </CompleteTournamentButton>
+                          {/* Bouton pour annuler la dernière phase principale */}
+                          <CancelPhaseButton onClick={() => handleCancelPhase(`principal_${currentRound}`)}>
+                            Annuler la dernière phase
+                          </CancelPhaseButton>
+                        </ButtonGroup>
                       </>
                     );
                   } else if (pendingCurrentRound.length > 0) {
                     return (
-                      <ActionMessage>
-                        Manche principale {currentRound} en cours : {pendingCurrentRound.length} match(s) en attente de résultat.
-                      </ActionMessage>
+                      <>
+                        <ActionMessage>
+                          Manche principale {currentRound} en cours : {pendingCurrentRound.length} match(s) en attente de résultat.
+                        </ActionMessage>
+                        {/* Ajout du bouton d'annulation pour la phase en cours */}
+                        <ButtonGroup>
+                          <CancelPhaseButton onClick={() => handleCancelPhase(`principal_${currentRound}`)}>
+                            Annuler cette phase
+                          </CancelPhaseButton>
+                        </ButtonGroup>
+                      </>
                     );
                   } else {
                     return (
@@ -842,8 +897,21 @@ const TournamentSummaryPage: React.FC = () => {
                               setActionMessage("Impossible de proposer des affrontements : pas assez d'équipes inscrites.");
                             }
                           }}>
-                            Proposer les affrontements de la manche {nextRound}
+                            {currentRound === 0 
+                              ? "Créer les matchs de la première manche" 
+                              : `Créer les matchs de la manche ${nextRound}`}
                           </CreateMatchesButton>
+                          
+                          {/* Bouton pour annuler la phase précédente */}
+                          {currentRound === 0 ? (
+                            <CancelPhaseButton onClick={() => handleCancelPhase('preliminaires')}>
+                              Annuler les préliminaires
+                            </CancelPhaseButton>
+                          ) : (
+                            <CancelPhaseButton onClick={() => handleCancelPhase(`principal_${currentRound}`)}>
+                              Annuler la manche {currentRound}
+                            </CancelPhaseButton>
+                          )}
                         </ButtonGroup>
                       </>
                     );
@@ -859,33 +927,6 @@ const TournamentSummaryPage: React.FC = () => {
         )}
       
       </ActionsSection>
-
-      {/* Statistiques du tournoi */}
-      <StatsSection>
-        <SectionTitle>Statistiques du tournoi</SectionTitle>
-        <StatsGrid>
-          <StatCard onClick={showRegisteredTeamsModal} style={{ cursor: 'pointer' }}>
-            <StatNumber>{rankings.length}</StatNumber>
-            <StatLabel>Équipes inscrites</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{totalMatches}</StatNumber>
-            <StatLabel>Matchs total</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{completedMatches}</StatNumber>
-            <StatLabel>Matchs terminés</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{prelimMatches}</StatNumber>
-            <StatLabel>Matchs préliminaires</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{mainMatches}</StatNumber>
-            <StatLabel>Matchs principaux</StatLabel>
-          </StatCard>
-        </StatsGrid>
-      </StatsSection>
 
       {/* Liste des matchs */}
       <MatchesSection>
@@ -905,12 +946,12 @@ const TournamentSummaryPage: React.FC = () => {
                       <HeaderCell>Équipe A</HeaderCell>
                       <HeaderCell>Score</HeaderCell>
                       <HeaderCell>Équipe B</HeaderCell>
-                      <HeaderCell>Statut</HeaderCell>
+                      <HeaderCell>Actions</HeaderCell>
                     </HeaderRow>
                   </MatchesTableHeader>
                   <MatchesTableBody>
                     {matches.filter(m => m.match_type === type).map(match => (
-                      <MatchRow key={match.id}>
+                      <MatchRow key={match.id} $status={match.winner_id ? 'completed' : 'in_progress'}>
                         <TeamMatchCell>
                           <TeamMatchName>{getTeamName(match.team_a_id)}</TeamMatchName>
                         </TeamMatchCell>
@@ -944,26 +985,22 @@ const TournamentSummaryPage: React.FC = () => {
                         <TeamMatchCell>
                           <TeamMatchName>{getTeamName(match.team_b_id)}</TeamMatchName>
                         </TeamMatchCell>
-                        <StatusCell>
+                        <ActionCell>
                           {editingMatch === match.id ? (
-                            <UpdateScoreButton onClick={() => handleUpdateScore(match.id)}>
-                              Valider
-                            </UpdateScoreButton>
+                            <ButtonGroup>
+                              <UpdateScoreButton onClick={() => handleUpdateScore(match.id)}>
+                                Valider
+                              </UpdateScoreButton>
+                              <CancelButton onClick={() => setEditingMatch(null)}>
+                                Annuler
+                              </CancelButton>
+                            </ButtonGroup>
                           ) : (
-                            <>
-                              {match.winner_id && (
-                                <StatusBadgeMatch $status="completed">
-                                  Terminé
-                                </StatusBadgeMatch>
-                              )}
-                              {tournament?.status === 'in_progress' && !match.winner_id && (
-                                <EditScoreButton onClick={() => handleEditMatch(match)}>
-                                  Saisir score
-                                </EditScoreButton>
-                              )}
-                            </>
+                            <EditScoreButton onClick={() => handleEditMatch(match)}>
+                              {match.winner_id ? 'Modifier score' : 'Saisir score'}
+                            </EditScoreButton>
                           )}
-                        </StatusCell>
+                        </ActionCell>
                       </MatchRow>
                     ))}
                   </MatchesTableBody>
@@ -1014,6 +1051,33 @@ const TournamentSummaryPage: React.FC = () => {
           </RankingTable>
         )}
       </RankingSection>
+
+      {/* Statistiques du tournoi */}
+      <StatsSection>
+        <SectionTitle>Statistiques du tournoi</SectionTitle>
+        <StatsGrid>
+          <StatCard onClick={showRegisteredTeamsModal} style={{ cursor: 'pointer' }}>
+            <StatNumber>{rankings.length}</StatNumber>
+            <StatLabel>Équipes inscrites</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{totalMatches}</StatNumber>
+            <StatLabel>Matchs total</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{completedMatches}</StatNumber>
+            <StatLabel>Matchs terminés</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{prelimMatches}</StatNumber>
+            <StatLabel>Matchs préliminaires</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{mainMatches}</StatNumber>
+            <StatLabel>Matchs principaux</StatLabel>
+          </StatCard>
+        </StatsGrid>
+      </StatsSection>
     </PageContainer>
   );
 };

@@ -64,3 +64,36 @@ status:
 clean:
 	docker system prune -f
 	docker volume prune -f
+
+
+# 🧪 Tests du backend
+.PHONY: test-backend test-backend-watch test-backend-e2e test-backend-unit
+
+# Exécuter tous les tests du backend
+test-backend:
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npm test"
+
+# Exécuter les tests en mode watch
+test-backend-watch:
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npm run test:watch"
+
+# Exécuter uniquement les tests end-to-end
+test-backend-e2e:
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npm run test:e2e"
+
+# Exécuter uniquement les tests e2e stables
+test-backend-e2e-stable:
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npm run test:e2e:stable"
+
+# Exécuter les tests e2e en développement (sans les tests de flux complet)
+test-backend-e2e-dev:
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npm run test:e2e:dev"
+
+# Exécuter uniquement les tests unitaires
+test-backend-unit:
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npm run test:unit"
+
+# Exécuter un test spécifique
+test-backend-file:
+	@read -p "Entrez le chemin du fichier de test (ex: tests/e2e/tournament-flow.test.ts): " file_path; \
+	docker-compose exec backend sh -c "cd /app && npm install ts-jest && npx jest $$file_path"

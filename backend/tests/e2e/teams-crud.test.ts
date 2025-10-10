@@ -14,7 +14,7 @@ describe('Teams CRUD E2E Tests', () => {
     });
   });
 
-  it('should perform CRUD operations on teams', async () => {
+  it('Devrait effectuer des opérations CRUD sur les équipes', async () => {
     // 1. Créer une équipe
     const createResponse = await request(app)
       .post('/teams')
