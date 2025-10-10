@@ -1,5 +1,5 @@
 import React from 'react';
-import { Team, Match } from '../../types/api';
+import type { Team, Match } from '../../types/api';
 import {
   ModalOverlay,
   ModalContainer,

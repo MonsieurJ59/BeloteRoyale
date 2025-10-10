@@ -1,4 +1,4 @@
-import { Team, Match } from '../types/api';
+import type { Team, Match } from '../types/api';
 
 // Fonction pour générer des paires d'équipes en évitant les affrontements précédents
 export const generateTeamPairsAvoidingPreviousMatchups = (
