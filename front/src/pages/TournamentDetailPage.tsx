@@ -323,12 +323,10 @@ const TournamentDetailPage = () => {
                       <VersusText>-</VersusText>
                       <Score isWinner={match.winner_id === match.team_b_id}>{match.score_b}</Score>
                     </ScoreContainer>
-                    {/* Bouton de modification affiché uniquement si le tournoi est en cours */}
-                    {tournament.status === 'in_progress' && (
-                      <UpdateScoreButton onClick={() => handleEditMatch(match)}>
-                        Modifier le score
-                      </UpdateScoreButton>
-                    )}
+                    {/* Bouton de modification toujours affiché, même pour les tournois terminés */}
+                    <UpdateScoreButton onClick={() => handleEditMatch(match)}>
+                      Modifier le score
+                    </UpdateScoreButton>
                   </>
                 )}
               </MatchCard>
@@ -386,11 +384,10 @@ const TournamentDetailPage = () => {
                     <VersusText>-</VersusText>
                     <Score isWinner={match.winner_id === match.team_b_id}>{match.score_b}</Score>
                   </ScoreContainer>
-                  {tournament.status === 'in_progress' && (
-                    <UpdateScoreButton onClick={() => handleEditMatch(match)}>
-                      Modifier le score
-                    </UpdateScoreButton>
-                  )}
+                  {/* Bouton de modification toujours affiché, même pour les tournois terminés */}
+                  <UpdateScoreButton onClick={() => handleEditMatch(match)}>
+                    Modifier le score
+                  </UpdateScoreButton>
                 </>
               )}
             </MatchCard>

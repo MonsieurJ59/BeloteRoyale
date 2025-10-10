@@ -368,23 +368,39 @@ export const HeaderRow = styled.div`
 
 export const MatchesTableBody = styled.div``;
 
-export const MatchRow = styled.div`
+// Modifier MatchRow pour être un div au lieu d'un tr
+export const MatchRow = styled.div<{ $status?: 'completed' | 'in_progress' }>`
   display: grid;
   grid-template-columns: 1fr 120px 1fr 100px;
-  border-bottom: 1px solid ${theme.colors.border.light};
+  align-items: center;
+  padding: ${theme.spacing.sm} 0;
   transition: all ${theme.transitions.fast};
-  
-  &:hover {
-    background-color: ${theme.colors.neutral.gray50};
-  }
-  
-  &:last-child {
-    border-bottom: none;
-  }
   
   @media (max-width: ${theme.breakpoints.md}) {
     grid-template-columns: 1fr 100px 1fr 80px;
   }
+  
+  &:hover {
+    background-color: ${theme.colors.neutral.gray100};
+  }
+  
+  /* Code couleur selon le statut du match */
+  background-color: ${props => 
+    props.$status === 'completed' 
+      ? `${theme.colors.status.success}10` 
+      : props.$status === 'in_progress'
+        ? `${theme.colors.primary.main}10`
+        : 'transparent'
+  };
+  
+  /* Bordure gauche colorée selon le statut */
+  border-left: 4px solid ${props => 
+    props.$status === 'completed' 
+      ? theme.colors.status.success
+      : props.$status === 'in_progress'
+        ? theme.colors.primary.main
+        : 'transparent'
+  };
 `;
 
 export const MatchCell = styled.div`
@@ -402,6 +418,12 @@ export const MatchCell = styled.div`
     font-size: ${theme.typography.fontSize.sm};
   }
 `;
+
+// SUPPRIMER cette définition en double de TeamMatchCell
+// export const TeamMatchCell = styled.div`
+//   padding: ${theme.spacing.md};
+//   text-align: center;
+// `;
 
 export const TeamMatchCell = styled.div`
   padding: ${theme.spacing.md};
@@ -424,6 +446,15 @@ export const TeamMatchName = styled.div`
     font-size: ${theme.typography.fontSize.sm};
   }
 `;
+
+// SUPPRIMER cette définition en double de ScoreCell
+// export const ScoreCell = styled.div`
+//   padding: ${theme.spacing.md};
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   gap: ${theme.spacing.sm};
+// `;
 
 export const ScoreCell = styled.div`
   padding: ${theme.spacing.md};
@@ -453,15 +484,28 @@ export const ScoreSeparator = styled.span`
   font-weight: ${theme.typography.fontWeight.medium};
 `;
 
+// SUPPRIMER cette définition en double de ActionCell
+// export const ActionCell = styled.div`
+//   padding: ${theme.spacing.md};
+//   text-align: center;
+//   display: flex;
+//   justify-content: center;
+// `;
+
+// Remplacer la définition de StatusCell par ActionCell
+export const ActionCell = styled.div`
+  padding: ${theme.spacing.md};
+  text-align: center;
+  display: flex;
+  justify-content: center;
+`;
+
+// Si StatusCell est encore utilisé ailleurs, conserver cette définition
 export const StatusCell = styled.div`
   padding: ${theme.spacing.md};
+  text-align: center;
   display: flex;
-  align-items: center;
   justify-content: center;
-  
-  @media (max-width: ${theme.breakpoints.md}) {
-    padding: ${theme.spacing.sm};
-  }
 `;
 
 export const StatusBadgeMatch = styled.span<{ $status: 'completed' | 'pending' }>`
@@ -524,19 +568,19 @@ export const UpdateScoreButton = styled.button`
 `;
 
 export const EditScoreButton = styled.button`
-  background: transparent;
-  color: ${theme.colors.primary.main};
-  border: 1px solid ${theme.colors.primary.main};
+  padding: ${theme.spacing.xs} ${theme.spacing.md};
+  background-color: ${theme.colors.accent.main};
+  color: ${theme.colors.text.light};
+  border: none;
   border-radius: ${theme.borderRadius.md};
-  padding: ${theme.spacing.xs} ${theme.spacing.sm};
-  font-size: ${theme.typography.fontSize.xs};
   font-weight: ${theme.typography.fontWeight.medium};
+  font-size: ${theme.typography.fontSize.sm};
   cursor: pointer;
-  margin-top: ${theme.spacing.xs};
   transition: all ${theme.transitions.fast};
   
   &:hover {
-    background-color: ${theme.colors.primary.main}10;
+    background-color: ${theme.colors.accent.light};
+    transform: translateY(-1px);
   }
 `;
 

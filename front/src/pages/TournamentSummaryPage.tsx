@@ -60,6 +60,7 @@ import {
   ScoreInput,
   UpdateScoreButton,
   EditScoreButton,
+  ActionCell,
   ButtonGroup,
   EditPairsButton,
   CancelButton,
@@ -860,33 +861,6 @@ const TournamentSummaryPage: React.FC = () => {
       
       </ActionsSection>
 
-      {/* Statistiques du tournoi */}
-      <StatsSection>
-        <SectionTitle>Statistiques du tournoi</SectionTitle>
-        <StatsGrid>
-          <StatCard onClick={showRegisteredTeamsModal} style={{ cursor: 'pointer' }}>
-            <StatNumber>{rankings.length}</StatNumber>
-            <StatLabel>Équipes inscrites</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{totalMatches}</StatNumber>
-            <StatLabel>Matchs total</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{completedMatches}</StatNumber>
-            <StatLabel>Matchs terminés</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{prelimMatches}</StatNumber>
-            <StatLabel>Matchs préliminaires</StatLabel>
-          </StatCard>
-          <StatCard>
-            <StatNumber>{mainMatches}</StatNumber>
-            <StatLabel>Matchs principaux</StatLabel>
-          </StatCard>
-        </StatsGrid>
-      </StatsSection>
-
       {/* Liste des matchs */}
       <MatchesSection>
         <SectionTitle>Matchs du tournoi</SectionTitle>
@@ -905,12 +879,12 @@ const TournamentSummaryPage: React.FC = () => {
                       <HeaderCell>Équipe A</HeaderCell>
                       <HeaderCell>Score</HeaderCell>
                       <HeaderCell>Équipe B</HeaderCell>
-                      <HeaderCell>Statut</HeaderCell>
+                      <HeaderCell>Actions</HeaderCell>
                     </HeaderRow>
                   </MatchesTableHeader>
                   <MatchesTableBody>
                     {matches.filter(m => m.match_type === type).map(match => (
-                      <MatchRow key={match.id}>
+                      <MatchRow key={match.id} $status={match.winner_id ? 'completed' : 'in_progress'}>
                         <TeamMatchCell>
                           <TeamMatchName>{getTeamName(match.team_a_id)}</TeamMatchName>
                         </TeamMatchCell>
@@ -944,26 +918,22 @@ const TournamentSummaryPage: React.FC = () => {
                         <TeamMatchCell>
                           <TeamMatchName>{getTeamName(match.team_b_id)}</TeamMatchName>
                         </TeamMatchCell>
-                        <StatusCell>
+                        <ActionCell>
                           {editingMatch === match.id ? (
-                            <UpdateScoreButton onClick={() => handleUpdateScore(match.id)}>
-                              Valider
-                            </UpdateScoreButton>
+                            <ButtonGroup>
+                              <UpdateScoreButton onClick={() => handleUpdateScore(match.id)}>
+                                Valider
+                              </UpdateScoreButton>
+                              <CancelButton onClick={() => setEditingMatch(null)}>
+                                Annuler
+                              </CancelButton>
+                            </ButtonGroup>
                           ) : (
-                            <>
-                              {match.winner_id && (
-                                <StatusBadgeMatch $status="completed">
-                                  Terminé
-                                </StatusBadgeMatch>
-                              )}
-                              {tournament?.status === 'in_progress' && !match.winner_id && (
-                                <EditScoreButton onClick={() => handleEditMatch(match)}>
-                                  Saisir score
-                                </EditScoreButton>
-                              )}
-                            </>
+                            <EditScoreButton onClick={() => handleEditMatch(match)}>
+                              {match.winner_id ? 'Modifier score' : 'Saisir score'}
+                            </EditScoreButton>
                           )}
-                        </StatusCell>
+                        </ActionCell>
                       </MatchRow>
                     ))}
                   </MatchesTableBody>
@@ -1014,6 +984,33 @@ const TournamentSummaryPage: React.FC = () => {
           </RankingTable>
         )}
       </RankingSection>
+
+      {/* Statistiques du tournoi */}
+      <StatsSection>
+        <SectionTitle>Statistiques du tournoi</SectionTitle>
+        <StatsGrid>
+          <StatCard onClick={showRegisteredTeamsModal} style={{ cursor: 'pointer' }}>
+            <StatNumber>{rankings.length}</StatNumber>
+            <StatLabel>Équipes inscrites</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{totalMatches}</StatNumber>
+            <StatLabel>Matchs total</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{completedMatches}</StatNumber>
+            <StatLabel>Matchs terminés</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{prelimMatches}</StatNumber>
+            <StatLabel>Matchs préliminaires</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatNumber>{mainMatches}</StatNumber>
+            <StatLabel>Matchs principaux</StatLabel>
+          </StatCard>
+        </StatsGrid>
+      </StatsSection>
     </PageContainer>
   );
 };
