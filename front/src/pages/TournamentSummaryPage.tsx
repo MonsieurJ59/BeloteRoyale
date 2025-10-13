@@ -75,7 +75,8 @@ import {
   ModalFooter,
   PairsList,
   PairItem,
-  CancelPhaseButton
+  CancelPhaseButton,
+  PhaseButtons
 } from '../styles/TournamentSummaryPage.styles';
 
 // Interface pour les données de classement
@@ -848,7 +849,7 @@ const TournamentSummaryPage: React.FC = () => {
                             ? "Les préliminaires sont terminés. Vous pouvez maintenant créer les matchs de la première manche principale." 
                             : `Manche principale ${currentRound} terminée. Vous pouvez maintenant créer les matchs de la manche ${nextRound}.`}
                         </ActionMessage>
-                        <ButtonGroup>
+                        <PhaseButtons>
                           <CreateMatchesButton onClick={() => {
                             if (registeredTeams && registeredTeams.length >= 2) {
                               // Construire l'historique des affrontements pour éviter les répétitions
@@ -912,7 +913,7 @@ const TournamentSummaryPage: React.FC = () => {
                               Annuler la manche {currentRound}
                             </CancelPhaseButton>
                           )}
-                        </ButtonGroup>
+                        </PhaseButtons>
                       </>
                     );
                   }
