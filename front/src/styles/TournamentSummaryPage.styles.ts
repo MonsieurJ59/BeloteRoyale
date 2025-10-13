@@ -494,9 +494,9 @@ export const ScoreSeparator = styled.span`
 
 // Remplacer la définition de StatusCell par ActionCell
 export const ActionCell = styled.div`
-  padding: ${theme.spacing.md};
-  text-align: center;
+  padding: ${theme.spacing.sm};
   display: flex;
+  align-items: center;
   justify-content: center;
 `;
 
@@ -553,14 +553,16 @@ export const UpdateScoreButton = styled.button`
   background: linear-gradient(135deg, ${theme.colors.primary.main}, ${theme.colors.primary.light});
   color: ${theme.colors.text.light};
   border: none;
-  border-radius: ${theme.borderRadius.md};
-  padding: ${theme.spacing.sm} ${theme.spacing.md};
-  font-size: ${theme.typography.fontSize.sm};
+  border-radius: ${theme.borderRadius.sm};
+  padding: ${theme.spacing.xs} ${theme.spacing.sm};
+  font-size: ${theme.typography.fontSize.xs};
   font-weight: ${theme.typography.fontWeight.medium};
   cursor: pointer;
   transition: all ${theme.transitions.normal};
   box-shadow: ${theme.shadows.sm};
-  
+  width: 100%;
+  min-height: 28px;
+
   &:hover {
     background: linear-gradient(135deg, ${theme.colors.primary.dark}, ${theme.colors.primary.main});
     box-shadow: ${theme.shadows.md};
@@ -568,16 +570,18 @@ export const UpdateScoreButton = styled.button`
 `;
 
 export const EditScoreButton = styled.button`
-  padding: ${theme.spacing.xs} ${theme.spacing.md};
+  padding: ${theme.spacing.xs} ${theme.spacing.sm};
   background-color: ${theme.colors.accent.main};
   color: ${theme.colors.text.light};
   border: none;
-  border-radius: ${theme.borderRadius.md};
+  border-radius: ${theme.borderRadius.sm};
   font-weight: ${theme.typography.fontWeight.medium};
-  font-size: ${theme.typography.fontSize.sm};
+  font-size: ${theme.typography.fontSize.xs};
   cursor: pointer;
   transition: all ${theme.transitions.fast};
-  
+  min-width: 88px;
+  min-height: 28px;
+
   &:hover {
     background-color: ${theme.colors.accent.light};
     transform: translateY(-1px);
@@ -586,8 +590,12 @@ export const EditScoreButton = styled.button`
 
 export const ButtonGroup = styled.div`
   display: flex;
-  gap: ${theme.spacing.md};
-  margin-top: ${theme.spacing.md};
+  flex-direction: column;
+  gap: ${theme.spacing.xs};
+  margin-top: 0;
+  width: 100%;
+  align-items: stretch;
+  justify-content: center;
 `;
 
 export const EditPairsButton = styled.button`
@@ -610,12 +618,14 @@ export const CancelButton = styled.button`
   background: transparent;
   color: ${theme.colors.status.error};
   border: 1px solid ${theme.colors.status.error};
-  border-radius: ${theme.borderRadius.md};
-  padding: ${theme.spacing.sm} ${theme.spacing.lg};
-  font-size: ${theme.typography.fontSize.sm};
+  border-radius: ${theme.borderRadius.sm};
+  padding: ${theme.spacing.xs} ${theme.spacing.sm};
+  font-size: ${theme.typography.fontSize.xs};
   font-weight: ${theme.typography.fontWeight.medium};
   cursor: pointer;
   transition: all ${theme.transitions.fast};
+  width: 100%;
+  min-height: 28px;
 
   &:hover {
     background-color: ${theme.colors.status.error}10;
